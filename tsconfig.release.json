@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "dist",
-    "removeComments": true
+    "removeComments": true,
+    "sourceMap": true
   },
   "include": [
     "src/**/*"

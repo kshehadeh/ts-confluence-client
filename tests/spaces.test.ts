@@ -1,24 +1,16 @@
-import {Confluence} from '../src';
 import {IErrorResponse} from "../src/resources";
-import {config} from "dotenv";
-import {confluenceTestSpace,confluenceTestSpaceUpdate} from "./data/space"
+import {confluenceTestSpace, confluenceTestSpaceUpdate} from "./data/space";
+import {getTestConfluence} from "./lib/init";
 
-describe('confluence resources', () => {
-    const cfg = config();
+describe ('Confluence: Spaces', () => {
 
-    const conn = {
-        host: process.env.CONFLUENCE_HOST,
-        username: process.env.CONFLUENCE_USERNAME,
-        apiToken: process.env.CONFLUENCE_API_KEY
-    };
+    type SpaceConfig = {
+        firstSpaceKey?: string,
+        createdSpace?: any,
+    }
+    const cfg:SpaceConfig = {};
 
-    const confluence = new Confluence(conn);
-
-    it('retrieved configuration information correctly', () => {
-        expect(conn.host === cfg.CONFLUENCE_HOST);
-        expect(conn.username === cfg.CONFLUENCE_USERNAME);
-        expect(conn.apiToken === cfg.CONFLUENCE_API_KEY);
-    });
+    const confluence = getTestConfluence();
 
     it('will retrieve the total number of spaces', async () => {
         await confluence.space.getTotal()
@@ -31,7 +23,7 @@ describe('confluence resources', () => {
     }, 30000);
 
     it('will retrieve all spaces', async () => {
-        await confluence.space.getAll()
+        await confluence.space.getAll({})
             .then((spaces: []) => {
                 expect(spaces.length > 0);
                 // @ts-ignore
