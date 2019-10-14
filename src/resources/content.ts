@@ -1,5 +1,6 @@
+import {AxiosError, AxiosResponse} from "axios";
 import * as fs from "fs";
-import {HttpContentType, Resource} from "./index";
+import {HttpAction, HttpContentType, IErrorResponse, IResourceResponse, Resource} from "./index";
 
 interface IContentRequest {
     type: string,
@@ -39,6 +40,15 @@ export type CreatePageProperties = {
     parentId?: string
 }
 
+export type ContentProperty = {
+    id: string,
+    key: string,
+    value: any,
+    version: any,
+    content: any,
+    _links: any
+}
+
 export type UpdatePageProperties = {
     title: string,
     version: number,
@@ -67,13 +77,109 @@ export type SearchContentProperties = {
 }
 
 export enum StringBoolean {
-    true =  "true",
+    true = "true",
     false = "false"
 }
+
 export type AttachmentProperties = {
     file: string,
     comment: string,
     minorEdit: StringBoolean,
+}
+
+export type GetAttachmentProperties = {
+    mediaType?: string,
+    filename?: string
+}
+
+export type ContentChildrenResponse = {
+    attachment?: IResourceResponse,
+    page?: IResourceResponse,
+    comment?: IResourceResponse,
+    _expandable: any,
+    _links: any
+}
+
+export type AtlassianUser = {
+    type: string, //known, unknown, anonymous, user
+    username: string,
+    accountId: string,
+    accountType: string,
+    email: string,
+    publicName: string,
+    profilePicture: any,
+    displayName: string,
+    operations: {
+        operation: string,
+        targetType: string
+    }[]
+    details: {
+        business?: any,
+        personal?: any
+    },
+    personalSpace: any
+    _expandable: any
+    _links: any
+}
+
+export type ContentVersion = {
+    by: AtlassianUser,
+    when: string,
+    friendlyWhen: string,
+    message: string,
+    number: number,
+    minorEdit: boolean,
+    content: any,
+    collaborators: {
+        users: AtlassianUser[],
+        userKeys: string[]
+    }
+    _expandable: any
+    _links: any
+}
+
+export type ContentHistoryResponse = {
+    id: string,
+    space: any,
+    title: string,
+    status: ContentStatus,
+    version: ContentVersion,
+    history: ContentHistory
+    type: ContentType,
+    _expandable: any,
+    _links: any
+}
+
+export type ContentHistory = {
+    latest: boolean
+    createdBy: AtlassianUser
+    createdDate: string,
+    lastUpdated: ContentVersion
+    previousVersion: ContentVersion
+    contributors: any
+    nextVersion: ContentVersion,
+    _expandable: any,
+    _links: any
+}
+
+export enum ContentHistoryExpansions {
+    lastUpdated = "lastUpdated",
+    previousVersion = "previousVersion",
+    contributors = "contributors",
+    nextVersion = "nextVersion"
+}
+
+export type ContentLabel = {
+    prefix: string,
+    name: string,
+    id?: string,
+    label?: string
+}
+
+export enum ContentLabelPrefixes {
+    global= "global",
+    my= "my",
+    team= "team"
 }
 
 export class Content extends Resource {
@@ -128,7 +234,7 @@ export class Content extends Resource {
             type: props.type ? props.type : ContentType.page,
             status: ContentStatus.current,
             space: {key: props.space},
-            ancestors: props.parentId ? {id: props.parentId} : null,
+            ancestors: props.parentId ? [{id: props.parentId}] : null,
             body: {},
         };
 
@@ -139,6 +245,47 @@ export class Content extends Resource {
         return this.create({
             data: params
         });
+    }
+
+    public async getContentProperty(id: string, propKey: string) {
+        return this.getOne(`${id}/property/${propKey}`)
+            .then((prop: ContentProperty) => {
+                return prop;
+            });
+    }
+
+    public async createContentProperty(id: string, propKey: string, propValue: object) {
+        return this.create({
+            id: `${id}/property`,
+            data: {
+                key: propKey,
+                value: propValue
+            }
+        }).then((prop: ContentProperty) => {
+            return prop;
+        });
+    }
+
+    public async updateContentProperty(id: string, propKey: string, propValue: object, minorEdit: boolean = true) {
+        return this.getContentProperty(id, propKey)
+            .then((prop: ContentProperty) => {
+                return prop.version.number;
+            })
+            .then((versionNum: number) => {
+                return this.update({
+                    id: `${id}/property/${propKey}`,
+                    data: {
+                        value: propValue,
+                        version: {
+                            number: versionNum + 1,
+                            minorEdit: minorEdit
+                        }
+                    }
+                });
+            })
+            .then((updatedProp: ContentProperty) => {
+                return updatedProp;
+            });
     }
 
     /**
@@ -153,11 +300,13 @@ export class Content extends Resource {
             contentStatuses: props.context.contentStatuses ? props.context.contentStatuses.join(',') : null
         } : null;
 
-        return this.getAll({id: 'search', params: {
-            cql: cql,
-            context: ctx,
-            expand: props && props.expand ? props.expand : null
-        }});
+        return this.getAll({
+            id: 'search', params: {
+                cql: cql,
+                context: ctx,
+                expand: props && props.expand ? props.expand : null
+            }
+        });
     }
 
     /**
@@ -226,25 +375,37 @@ export class Content extends Resource {
      * @param childTypes See https://developer.atlassian.com/cloud/confluence/rest/#api-content-id-child-get for the
      *          options that are available here.
      */
-    public getContentChildren(id:string, childTypes: ContentType[]) {
+    public getContentChildren(id: string, childTypes: ContentType[]) {
         if (childTypes.indexOf(ContentType.blogpost) > -1) {
-            throw ("Blogposts cannot be children of any other content")
+            throw ("Blog posts cannot be children of any other content");
         }
 
-        return this.getAll({
-            id: `/content/${id}/child`,
+        return this.makeRequest({
+            action: HttpAction.GET,
+            url: this.getRequestUrl(`${id}/child`),
             params: {
-                expand: childTypes.join(',')
-            }});
-    }
-
-    public getAttachments(id:string, expansions: string[]) {
-        return this.getAll({
-            id: `/content/${id}/child/attachment`,
-            params: {
-                expand: expansions.join(',')
+                expand: childTypes.join(','),
             }
         })
+            .then((response: AxiosResponse<IErrorResponse | ContentChildrenResponse>) => {
+                if (response.status != 200) {
+                    throw response.data as IErrorResponse;
+                } else {
+                    return response.data as ContentChildrenResponse;
+                }
+            })
+            .catch((err: AxiosError) => {
+                throw this.buildError(err);
+            });
+
+    }
+
+    public getAttachments(id: string, props?: GetAttachmentProperties) {
+        return this.getAll({
+            id: `${id}/child/attachment`,
+            expand: [],
+            params: props
+        });
     }
 
     /**
@@ -262,7 +423,7 @@ export class Content extends Resource {
                 comment: attach.comment,
                 minorEdit: attach.minorEdit
             }
-        }).then((attachmentResult: any)=>{
+        }).then((attachmentResult: any) => {
             // the attachment result returns a result similar to a get multiple resources
             //  request.  So we are going to pull out the results here
             return attachmentResult.results;
@@ -290,7 +451,7 @@ export class Content extends Resource {
             params: {
                 'expand': expansion.join(',')
             }
-        })
+        });
     }
 
     /**
@@ -310,4 +471,32 @@ export class Content extends Resource {
         });
     }
 
+    public getContentHistory(id: string, expand: ContentHistoryExpansions[]) {
+        return this.getOne(id, {
+            expand: expand.join(',')
+        })
+            .then((history: ContentHistoryResponse) => {
+                return history;
+            });
+    }
+
+    public addContentLabel(id:string, label: ContentLabel) {
+        return this.create({
+            id: `${id}/label`,
+            data: label
+        }).then((res: IResourceResponse)=>{
+            return res.results
+        })
+    }
+
+    public getContentLabels(id:string, prefixFilter: ContentLabelPrefixes) {
+        return this.getAll({
+            id: `${id}/label`,
+            params: {
+                prefix: prefixFilter
+            }
+        }).then((labels: ContentLabel[])=>{
+            return labels
+        })
+    }
 }

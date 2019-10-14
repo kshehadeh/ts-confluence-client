@@ -46,7 +46,7 @@ export type IErrorResponse = {
 export type GetAllParameters = {
     id?: string,
     params?: object,
-    expand?: string[]
+    expand?: any[]
 }
 
 export type CreateUpdateParameters = {
@@ -65,29 +65,6 @@ export type HttpRequestParameters = {
     additionalHeaders?: object
 }
 
-/**
- * Converts an axios response into one that tries to pull more information out of the Atlassian
- * response when it's available.
- * @param err The error that was caught.
- * @returns {IErrorResponse} The new error response that can be thrown.
- */
-const buildError = (err: AxiosError): IErrorResponse => {
-    if (err.response && err.response.data) {
-        return {
-            statusCode: err.code ? err.code : err.response.data.statusCode,
-            data: err.response.data.data ? err.response.data.data : {},
-            message: err.response.data.message ? err.response.data.message : err.message
-        } as IErrorResponse;
-    }
-    else {
-        return {
-            statusCode: 0,
-            data: {},
-            message: err.message
-        }
-    }
-};
-
 
 export abstract class Resource {
     pageSize: number = 50;
@@ -97,6 +74,30 @@ export abstract class Resource {
         this.connection = connection;
         this.pageSize = pageSize;
     }
+
+
+    /**
+     * Converts an axios response into one that tries to pull more information out of the Atlassian
+     * response when it's available.
+     * @param err The error that was caught.
+     * @returns {IErrorResponse} The new error response that can be thrown.
+     */
+    protected buildError (err: AxiosError): IErrorResponse {
+        if (err.response && err.response.data) {
+            return {
+                statusCode: err.code ? err.code : err.response.data.statusCode,
+                data: err.response.data.data ? err.response.data.data : {},
+                message: err.response.data.message ? err.response.data.message : err.message
+            } as IErrorResponse;
+        }
+        else {
+            return {
+                statusCode: 0,
+                data: {},
+                message: err.message
+            }
+        }
+    };
 
     protected async makeRequest(params: HttpRequestParameters) {
 
@@ -139,6 +140,9 @@ export abstract class Resource {
                 ...formDataOb.getHeaders()
             }
         }
+        else {
+            cfg.data = params.data
+        }
 
         return axios(cfg as AxiosRequestConfig);
     }
@@ -157,7 +161,7 @@ export abstract class Resource {
             })
             .catch((err: AxiosError) => {
                 //throw buildError(err);
-                throw buildError(err);
+                throw this.buildError(err);
             });
 
     }
@@ -175,7 +179,7 @@ export abstract class Resource {
                 return response.data;
             })
             .catch((err: AxiosError) => {
-                throw buildError(err);
+                throw this.buildError(err);
             });
 
     }
@@ -190,7 +194,7 @@ export abstract class Resource {
                 return (response.status >= 200 && response.status < 300);
             })
             .catch((err: AxiosError) => {
-                throw buildError(err);
+                throw this.buildError(err);
             });
 
     }
@@ -211,7 +215,7 @@ export abstract class Resource {
                 return response.data;
             })
             .catch((err: AxiosError) => {
-                throw buildError(err);
+                throw this.buildError(err);
             });
     }
 
@@ -247,18 +251,7 @@ export abstract class Resource {
                 }
             })
             .catch((err: AxiosError) => {
-                throw buildError(err);
-            });
-    }
-
-    /**
-     * This will make a request for the resources with a count of 0 just
-     * to get the total.  It returns a promise.
-     */
-    public async getTotal(id?:string, params?: object): Promise<number> {
-        return this.getPage(0, 1, id, params).then(
-            (response: IResourceResponse) => {
-                return response.size;
+                throw this.buildError (err);
             });
     }
 
@@ -269,9 +262,16 @@ export abstract class Resource {
      * approach.
      * @param id (Optional) In some cases, the ID needs to be used to get specific collections of resources.
      * @param params
+     * @param expand
      */
     public async getAll({id, params, expand}: GetAllParameters): Promise<any> {
-        const total = await this.getTotal(id, params);
+
+        // get the total number of items.
+        const total = await this.getPage(0, 1, id, params, expand).then(
+            (response: IResourceResponse) => {
+                return response.size;
+            });
+
         if (!total) {
             return [];
         }
