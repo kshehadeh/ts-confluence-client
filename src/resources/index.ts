@@ -184,11 +184,12 @@ export abstract class Resource {
 
     }
 
-    public async remove(id: string, data?: object): Promise<boolean> {
+    public async remove(id: string, data?: object, params?: object): Promise<boolean> {
         return this.makeRequest({
             action: HttpAction.DELETE,
             url: this.getRequestUrl(id),
-            data: data
+            data: data,
+            params: params
         })
             .then((response: AxiosResponse<object>) => {
                 return (response.status >= 200 && response.status < 300);
@@ -203,13 +204,13 @@ export abstract class Resource {
      * Call to get a single item in a collection.  This assumes that a standard CRUD interface
      * exists for the call as in api/<resource>/<id>
      * @param id
-     * @param data
+     * @param params
      */
-    public async getOne(id: string, data?: object): Promise<any> {
+    public async getOne(id: string, params?:  object): Promise<any> {
         return this.makeRequest({
             action: HttpAction.GET,
             url: this.getRequestUrl(id),
-            data: data
+            params: params
         })
             .then((response: AxiosResponse<object>) => {
                 return response.data;

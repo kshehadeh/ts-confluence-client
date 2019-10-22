@@ -17,6 +17,9 @@ interface IBlogRequest extends IContentRequest {
     postingDay?: string
 }
 
+/**
+ * These are the Confluence Content Types that are supported by the API
+ */
 export enum ContentType {
     page = 'page',
     blogpost = 'blogpost',
@@ -24,11 +27,28 @@ export enum ContentType {
     attachment = 'attachment'
 }
 
+/**
+ * Most of the  type, the format you will be  requesting the  content in is "storage"
+ * meaning the raw format (as it is "stored" in Confluence backend).
+ */
 export enum ContentFormat {
     storage = 'storage',
     styled_view = 'styled_view',
     view = 'view',
     export_view = 'export_view'
+}
+
+/**
+ * Content properties are  custom data that you can associated with  pages. The  object
+ * below is the Confluence API's definition of the content prop's values.
+ */
+export type ContentProperty = {
+    id?: string,
+    key: string,
+    value: any,
+    version?: any,
+    content?: any,
+    _links?: any
 }
 
 export type CreatePageProperties = {
@@ -40,14 +60,6 @@ export type CreatePageProperties = {
     parentId?: string
 }
 
-export type ContentProperty = {
-    id: string,
-    key: string,
-    value: any,
-    version: any,
-    content: any,
-    _links: any
-}
 
 export type UpdatePageProperties = {
     title: string,
@@ -56,13 +68,6 @@ export type UpdatePageProperties = {
     body: string,
     format: ContentFormat,
     parentId?: string
-}
-
-export enum ContentStatus {
-    current = "current",
-    trashed = "trashed",
-    historical = "historical",
-    draft = "draft"
 }
 
 export type CqlContextProperties = {
@@ -74,6 +79,13 @@ export type CqlContextProperties = {
 export type SearchContentProperties = {
     context?: CqlContextProperties,
     expand: string[]
+}
+
+export enum ContentStatus {
+    current = "current",
+    trashed = "trashed",
+    historical = "historical",
+    draft = "draft"
 }
 
 export enum StringBoolean {
@@ -166,6 +178,7 @@ export enum ContentHistoryExpansions {
     lastUpdated = "lastUpdated",
     previousVersion = "previousVersion",
     contributors = "contributors",
+    history = "history",
     nextVersion = "nextVersion"
 }
 
@@ -247,6 +260,11 @@ export class Content extends Resource {
         });
     }
 
+    /**
+     * Gets a custom property associated with the given page.
+     * @param id
+     * @param propKey The property key to retrieve the value for
+     */
     public async getContentProperty(id: string, propKey: string) {
         return this.getOne(`${id}/property/${propKey}`)
             .then((prop: ContentProperty) => {
@@ -254,6 +272,12 @@ export class Content extends Resource {
             });
     }
 
+    /**
+     * Create a new custom content property
+     * @param id
+     * @param propKey The name of the property
+     * @param propValue The value of the property.  This must be a javascript object.
+     */
     public async createContentProperty(id: string, propKey: string, propValue: object) {
         return this.create({
             id: `${id}/property`,
@@ -266,6 +290,13 @@ export class Content extends Resource {
         });
     }
 
+    /**
+     * Update the value and associated metadata for a given content property
+     * @param id
+     * @param propKey The prop name to update
+     * @param propValue The value of the property
+     * @param minorEdit (optional) If true, this change will  not show as a separate item in  the page's history audit
+     */
     public async updateContentProperty(id: string, propKey: string, propValue: object, minorEdit: boolean = true) {
         return this.getContentProperty(id, propKey)
             .then((prop: ContentProperty) => {
@@ -353,7 +384,7 @@ export class Content extends Resource {
         if (page) {
             // we can only permanently delete if the item is already in the trash.
             if (page.status === ContentStatus.trashed) {
-                return this.remove(id, {status: ContentStatus.trashed});
+                return this.remove(id, null, {status: ContentStatus.trashed});
             } else {
                 return this.remove(id).then((deleted: boolean) => {
                     if (deleted) {
@@ -400,6 +431,11 @@ export class Content extends Resource {
 
     }
 
+    /**
+     * Get all the  attachments associated with the  given content
+     * @param id
+     * @param props Properties to filter the results to only certain media  types or filenames (or both)
+     */
     public getAttachments(id: string, props?: GetAttachmentProperties) {
         return this.getAll({
             id: `${id}/child/attachment`,
@@ -465,12 +501,21 @@ export class Content extends Resource {
         });
     }
 
+    /**
+     * Retrieves all content filtered by the  parameters given in IContentRequest
+     * @param request The requested information
+     */
     public getContentCollection(request: IPageRequest | IBlogRequest) {
         return this.getAll({
             params: request
         });
     }
 
+    /**
+     * Returns a history object for the  given content
+     * @param id
+     * @param expand
+     */
     public getContentHistory(id: string, expand: ContentHistoryExpansions[]) {
         return this.getOne(id, {
             expand: expand.join(',')
@@ -480,6 +525,11 @@ export class Content extends Resource {
             });
     }
 
+    /**
+     * Adds a new label to the given content
+     * @param id
+     * @param label The text for the label
+     */
     public addContentLabel(id:string, label: ContentLabel) {
         return this.create({
             id: `${id}/label`,
@@ -489,7 +539,12 @@ export class Content extends Resource {
         })
     }
 
-    public getContentLabels(id:string, prefixFilter: ContentLabelPrefixes) {
+    /**
+     * Gets all labels  associated with the given  content
+     * @param id
+     * @param prefixFilter Only returns labels that have the given prefix (defaults to global)
+     */
+    public getContentLabels(id:string, prefixFilter: ContentLabelPrefixes=ContentLabelPrefixes.global) {
         return this.getAll({
             id: `${id}/label`,
             params: {
@@ -498,5 +553,47 @@ export class Content extends Resource {
         }).then((labels: ContentLabel[])=>{
             return labels
         })
+    }
+
+    public getContentVersions(id: string) {
+        return this.getAll({
+            id: `${id}/version`,
+        })
+            .then((versions: ContentVersion[])=>{
+                return versions;
+            })
+    }
+
+    public getContentVersion(id: string, version: number, expand: string[]) {
+        return this.getOne(`${id}/version/${version}`, {
+                expand: expand ? expand.join(',') : null
+            }
+        )
+            .then((version: ContentVersion)=>{
+                return version;
+            })
+    }
+
+    /**
+     * NOTE: This currently does not work - i submitted a question on Atlassian's dev community.
+     *
+     * @param id
+     * @param version
+     * @param message
+     */
+    public restoreContentVersion(id: string, version: number, message: string) {
+        return this.create({
+            id: `${id}/version/`,
+            data: {
+                operationKey: 'RESTORE',
+                params: {
+                    versionNumber: version,
+                    message: message
+                }
+            }
+        })
+            .then((version: ContentVersion) => {
+                return version;
+            })
     }
 }

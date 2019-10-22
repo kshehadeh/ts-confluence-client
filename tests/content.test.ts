@@ -1,3 +1,4 @@
+import {v4 as uuid} from 'uuid';
 import {IErrorResponse} from "../src/resources";
 import {
     ContentChildrenResponse,
@@ -8,21 +9,29 @@ import {
     ContentLabelPrefixes,
     ContentProperty,
     ContentType,
+    ContentVersion,
     StringBoolean
 } from "../src/resources/content";
 import {getTestConfluence} from "./lib/init";
 
 describe ('Confluence: Content', () => {
 
+    const testRunId = uuid();
+
     type ContentConfig = {
+        initialTitle: string,
         updatedTitle: string,
+        childPageTitle: string,
         demoSpace?: any,
         demoPage?: any,
         demoChildPage?: any,
+        demoVersion?: ContentVersion,
         createdSpace?: any,
     }
     const cfg:ContentConfig = {
-        updatedTitle: 'Test Page (Updated)'
+        initialTitle: 'Test Page - ' + testRunId,
+        updatedTitle: `Test Page - ${testRunId} (Updated)`,
+        childPageTitle: `Test Child Page - ${testRunId}`
     };
 
     const confluence = getTestConfluence();
@@ -46,6 +55,9 @@ describe ('Confluence: Content', () => {
         await confluence.content.getPagesInSpace(cfg.demoSpace.key)
             .then((pages: object[]) => {
                 expect(pages.length >= 0);
+                if (pages.length > 0) {
+                    cfg.demoPage = pages[0]
+                }
             })
             .catch((err: IErrorResponse) => {
                 throw new Error(`Error occurred: ${err.message}`);
@@ -83,6 +95,9 @@ describe ('Confluence: Content', () => {
         await confluence.content.getOne(cfg.demoPage.id)
             .then((page: object) => {
                 expect(page).toEqual(expect.objectContaining({'id': expect.any(String)}));
+                if (!cfg.demoPage) {
+                    cfg.demoPage = page;
+                }
             })
             .catch((err: IErrorResponse) => {
                 throw new Error(`Error occurred: ${err.message}`);
@@ -91,6 +106,9 @@ describe ('Confluence: Content', () => {
 
 
     it('will update a page', async () => {
+
+        await sleep(3000);
+
         if (!cfg.demoPage)  {
             console.warn("Specific page to load was not found in previous steps");
             expect(true);
@@ -118,7 +136,7 @@ describe ('Confluence: Content', () => {
             expect(true);
         }
         else {
-            await confluence.content.searchContent('id='+cfg.demoPage.id)
+            await confluence.content.searchContent('id=' + cfg.demoPage.id)
                 .then((pages: object[]) => {
                     expect(pages.length).toEqual(1);
                 })
@@ -169,7 +187,7 @@ describe ('Confluence: Content', () => {
         }
 
         await confluence.content.createContent({
-            title: "Test Child Page",
+            title: cfg.childPageTitle,
             space: cfg.demoSpace.key,
             body: "This is my test content for the child of the other test content",
             format: ContentFormat.storage,
@@ -191,7 +209,7 @@ describe ('Confluence: Content', () => {
         await confluence.content.getContentChildren(cfg.demoPage.id,
             [ContentType.attachment,ContentType.page])
             .then((results: ContentChildrenResponse) => {
-                expect(results.attachment.results.length).toBeGreaterThanOrEqual(2);
+                expect(results.attachment.results.length).toBeGreaterThanOrEqual(1);
                 expect(results.page.results.length).toBeGreaterThanOrEqual(1);
             })
             .catch((err: IErrorResponse) => {
@@ -201,7 +219,7 @@ describe ('Confluence: Content', () => {
 
     it('will retrieve page attachments', async () => {
         // @ts-ignore
-        await confluence.content.getAttachments('294913',//cfg.demoPage.id,
+        await confluence.content.getAttachments(cfg.demoPage.id,
             {}
             )
             .then((attachments: any[]) => {
@@ -214,7 +232,7 @@ describe ('Confluence: Content', () => {
 
     it('will create a content property', async () => {
         // @ts-ignore
-        await confluence.content.createContentProperty('294913',//cfg.demoPage.id,
+        await confluence.content.createContentProperty(cfg.demoPage.id,
             "testProp", {"test1": "hello"}
             )
             .then((prop: ContentProperty) => {
@@ -227,7 +245,7 @@ describe ('Confluence: Content', () => {
 
     it('will get a content property', async () => {
         // @ts-ignore
-        await confluence.content.getContentProperty('294913',//cfg.demoPage.id,
+        await confluence.content.getContentProperty(cfg.demoPage.id,
             "testProp"
         )
             .then((prop: ContentProperty) => {
@@ -241,7 +259,7 @@ describe ('Confluence: Content', () => {
 
     it('will update a content property', async () => {
         // @ts-ignore
-        await confluence.content.updateContentProperty('294913',//cfg.demoPage.id,
+        await confluence.content.updateContentProperty(cfg.demoPage.id,
             "testProp", {"test1": "goodbye"}
             )
             .then((prop: ContentProperty) => {
@@ -254,8 +272,8 @@ describe ('Confluence: Content', () => {
 
     it('will get content history', async () => {
         // @ts-ignore
-        await confluence.content.getContentHistory('294913',//cfg.demoPage.id,
-            [ContentHistoryExpansions.contributors]
+        await confluence.content.getContentHistory(cfg.demoPage.id,
+            [ContentHistoryExpansions.contributors, ContentHistoryExpansions.history]
             )
             .then((hist: ContentHistoryResponse) => {
                 console.log(hist);
@@ -267,7 +285,7 @@ describe ('Confluence: Content', () => {
     }, 30000);
 
     it('create a label', async () => {
-        await confluence.content.addContentLabel('294913',//cfg.demoPage.id,
+        await confluence.content.addContentLabel(cfg.demoPage.id,
             {
                 prefix: ContentLabelPrefixes.global,
                 name: "label"
@@ -282,9 +300,9 @@ describe ('Confluence: Content', () => {
             });
     }, 3000);
 
-    it.only('will get labels', async () => {
+    it('will get labels', async () => {
         // @ts-ignore
-        await confluence.content.getContentLabels('294913',//cfg.demoPage.id,
+        await confluence.content.getContentLabels(cfg.demoPage.id,
             ContentLabelPrefixes.global
             )
             .then((labels: ContentLabel[]) => {
@@ -295,7 +313,50 @@ describe ('Confluence: Content', () => {
             });
     }, 30000);
 
-    it.skip('will delete a specific page in the space', async () => {
+    it ('will get all versions of a page', async () => {
+        // @ts-ignore
+        await confluence.content.getContentVersions(cfg.demoPage.id,
+        )
+            .then((versions: ContentVersion[]) => {
+                expect(versions.length).toBeGreaterThan(1);
+                cfg.demoVersion = versions[1]
+            })
+            .catch((err: IErrorResponse) => {
+                throw new Error(`Error occurred: ${err.message}`);
+            });
+    }, 30000);
+
+
+    it ('will get one version of a page', async () => {
+        // @ts-ignore
+        await confluence.content.getContentVersion(
+            cfg.demoPage.id,
+            cfg.demoVersion.number
+        )
+            .then((version: ContentVersion) => {
+                expect(version.number).toBeGreaterThan(0);
+            })
+            .catch((err: IErrorResponse) => {
+                throw new Error(`Error occurred: ${err.message}`);
+            });
+    }, 30000);
+
+    it.skip ('restore a version of a page', async () => {
+        // @ts-ignore
+        await confluence.content.restoreContentVersion(
+            cfg.demoPage.id,
+            cfg.demoVersion.number,
+            "testing restore"
+        )
+            .then((version: ContentVersion) => {
+                expect(version.number).toBeGreaterThan(0);
+            })
+            .catch((err: IErrorResponse) => {
+                throw new Error(`Error occurred: ${err.message}`);
+            });
+    }, 30000);
+
+    it('will delete a specific page in the space', async () => {
         if (!cfg.demoPage)  {
             console.warn("Specific page to load was not found in previous steps");
             expect(true);
@@ -314,7 +375,7 @@ describe ('Confluence: Content', () => {
             });
     }, 30000);
 
-    it.skip('will PERMANENTLY delete a specific page in the space', async () => {
+    it('will PERMANENTLY delete a specific page in the space', async () => {
         if (!cfg.demoPage)  {
             console.warn("Specific page to load was not found in previous steps");
             expect(true);
