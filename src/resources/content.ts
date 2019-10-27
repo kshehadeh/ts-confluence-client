@@ -1,6 +1,7 @@
 import {AxiosError, AxiosResponse} from "axios";
 import * as fs from "fs";
 import {HttpAction, HttpContentType, IErrorResponse, IResourceResponse, Resource} from "./index";
+import {AtlassianUser} from "./user";
 
 interface IContentRequest {
     type: string,
@@ -112,27 +113,6 @@ export type ContentChildrenResponse = {
     _links: any
 }
 
-export type AtlassianUser = {
-    type: string, //known, unknown, anonymous, user
-    username: string,
-    accountId: string,
-    accountType: string,
-    email: string,
-    publicName: string,
-    profilePicture: any,
-    displayName: string,
-    operations: {
-        operation: string,
-        targetType: string
-    }[]
-    details: {
-        business?: any,
-        personal?: any
-    },
-    personalSpace: any
-    _expandable: any
-    _links: any
-}
 
 export type ContentVersion = {
     by: AtlassianUser,
@@ -528,15 +508,32 @@ export class Content extends Resource {
     /**
      * Adds a new label to the given content
      * @param id
-     * @param label The text for the label
+     * @param labelName
      */
-    public addContentLabel(id:string, label: ContentLabel) {
+    public addContentLabel(id: string, labelName: string) {
         return this.create({
             id: `${id}/label`,
-            data: label
+            data: {
+                prefix: 'global',
+                name: labelName
+            }
         }).then((res: IResourceResponse)=>{
             return res.results
         })
+    }
+
+    /**
+     * Adds a new label to the given content
+     * @param id
+     * @param label The text for the label
+     */
+    public removeContentLabel(id: string, label: ContentLabel) {
+        return this.remove(
+            `${id}/label`,
+            label
+        ).then(() => {
+            return true;
+        });
     }
 
     /**

@@ -52,6 +52,7 @@ export type GetAllParameters = {
 export type CreateUpdateParameters = {
     data: object,
     id?: string,
+    params?: object,
     contentType?: HttpContentType,
     additionalHeaders?: object
 }
@@ -152,6 +153,7 @@ export abstract class Resource {
                 action: HttpAction.POST,
                 url: this.getRequestUrl(params.id),
                 data: params.data,
+            params: params.params,
                 contentType: params.contentType ? params.contentType : HttpContentType.Json,
                 additionalHeaders: params.additionalHeaders
             }
@@ -261,14 +263,11 @@ export abstract class Resource {
      * paging through the results on your  behalf and returning a single array.  If there could
      * be *a lot* of results (thousands) then you should stop doing what you're doing and use a different
      * approach.
-     * @param id (Optional) In some cases, the ID needs to be used to get specific collections of resources.
-     * @param params
-     * @param expand
+     * @param props
      */
-    public async getAll({id, params, expand}: GetAllParameters): Promise<any> {
-
+    public async getAll(props?: GetAllParameters): Promise<any> {
         // get the total number of items.
-        const total = await this.getPage(0, 1, id, params, expand).then(
+        const total = await this.getPage(0, 1, props.id, props.params, props.expand).then(
             (response: IResourceResponse) => {
                 return response.size;
             });
@@ -288,7 +287,7 @@ export abstract class Resource {
         let results: [] = [];
         for (let i = 0; i < pageCount; i++) {
             let start = i * this.pageSize;
-            const response: IResourceResponse = await this.getPage(start, this.pageSize, id, params,expand);
+            const response: IResourceResponse = await this.getPage(start, this.pageSize, props.id, props.params, props.expand);
             results.push(...response.results);
         }
 
