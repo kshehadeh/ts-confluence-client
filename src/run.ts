@@ -1,7 +1,7 @@
 import {Confluence} from "./index";
 import {IErrorResponse} from "./resources";
 import {config} from "dotenv";
-import {StringBoolean} from "./resources/content";
+import {StringBoolean} from "./resources/contentApi";
 
 config();
 

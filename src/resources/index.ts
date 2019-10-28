@@ -3,6 +3,7 @@ import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
 const FormData = require('form-data');
 
 import {ConfConnectionInfo} from "..";
+import {AtlassianCollection, AtlassianError, isAtlassianError, ResponseOrError} from "./types";
 
 export enum HttpAction {
     GET = 'GET',
@@ -16,52 +17,39 @@ export enum HttpContentType {
     FormData = 'multipart/form-data'
 }
 
-export interface IResourceResponse {
-    results: [],
-    start: number,
-    limit: number,
-    size: number,
-    totalSize: number,
-    _links: object
-}
-
-export interface Error {
-    message: {
-        translation: string,
-        args: []
-    }
-}
-
-export type IErrorResponse = {
-    statusCode: number,
-    data: {
-        authorized?: boolean,
-        valid?: boolean,
-        errors?: [Error],
-        successful?: boolean
-    },
-    message?: string
-}
-
-export type GetAllParameters = {
+export type GetAllOptions = {
     id?: string,
     params?: object,
     expand?: any[]
 }
 
-export type CreateUpdateParameters = {
-    data: object,
+export type GetPageOptions = {
+    start: number,
+    limit?: number,
     id?: string,
-    params?: object,
+    params?: any,
+    expand?: string[]
+}
+
+export type CreateUpdateOptions<T> = {
+    data: T,
+    id?: string,
+    params?: T,
     contentType?: HttpContentType,
     additionalHeaders?: object
 }
 
-export type HttpRequestParameters = {
+export type RemoveOptions = {
+    id: string,
+    data?: object,
+    params?: object
+}
+
+export type HttpRequestParameters<T> = {
     url: string,
     action: HttpAction,
-    data?: object,
-    params?: object,
+    data?: T,
+    params?: T,
     contentType?: HttpContentType,
     additionalHeaders?: object
 }
@@ -81,15 +69,15 @@ export abstract class Resource {
      * Converts an axios response into one that tries to pull more information out of the Atlassian
      * response when it's available.
      * @param err The error that was caught.
-     * @returns {IErrorResponse} The new error response that can be thrown.
+     * @returns {AtlassianError} The new error response that can be thrown.
      */
-    protected buildError (err: AxiosError): IErrorResponse {
+    protected buildError(err: AxiosError): AtlassianError {
         if (err.response && err.response.data) {
             return {
                 statusCode: err.code ? err.code : err.response.data.statusCode,
                 data: err.response.data.data ? err.response.data.data : {},
                 message: err.response.data.message ? err.response.data.message : err.message
-            } as IErrorResponse;
+            } as AtlassianError;
         }
         else {
             return {
@@ -100,7 +88,7 @@ export abstract class Resource {
         }
     };
 
-    protected async makeRequest(params: HttpRequestParameters) {
+    protected async makeRequest<T>(params: HttpRequestParameters<T>) {
 
         if (!params.additionalHeaders) {
             params.additionalHeaders = {}
@@ -148,8 +136,17 @@ export abstract class Resource {
         return axios(cfg as AxiosRequestConfig);
     }
 
-    public async create(params: CreateUpdateParameters): Promise<object> {
-        return this.makeRequest({
+    /**
+     * The create method is a template that takes takes two types:
+     *  T: This is the type that is being sent into the create function as the data parameter
+     *  P: This is the value that is returned in the promise when the call is successful.
+     *
+     *  For create functions, it is not always the case that the type that is passed as input is the
+     *  same type that is received as output.
+     * @param params
+     */
+    public async create<T, P>(params: CreateUpdateOptions<T>): Promise<P> {
+        return this.makeRequest<T>({
                 action: HttpAction.POST,
                 url: this.getRequestUrl(params.id),
                 data: params.data,
@@ -158,26 +155,26 @@ export abstract class Resource {
                 additionalHeaders: params.additionalHeaders
             }
         )
-            .then((response: AxiosResponse<object>) => {
+            .then((response: AxiosResponse<P>) => {
                 return response.data;
             })
             .catch((err: AxiosError) => {
-                //throw buildError(err);
                 throw this.buildError(err);
             });
 
     }
 
-    public async update(params: CreateUpdateParameters): Promise<object> {
+    public async update<T>(params: CreateUpdateOptions<T>): Promise<T> {
         return this.makeRequest({
                 action: HttpAction.PUT,
                 url: this.getRequestUrl(params.id),
                 data: params.data,
+            params: params.params,
                 contentType: params.contentType ? params.contentType : HttpContentType.Json,
                 additionalHeaders: params.additionalHeaders
             }
         )
-            .then((response: AxiosResponse<object>) => {
+            .then((response: AxiosResponse<T>) => {
                 return response.data;
             })
             .catch((err: AxiosError) => {
@@ -186,12 +183,12 @@ export abstract class Resource {
 
     }
 
-    public async remove(id: string, data?: object, params?: object): Promise<boolean> {
+    public async remove(opts: RemoveOptions): Promise<boolean> {
         return this.makeRequest({
             action: HttpAction.DELETE,
-            url: this.getRequestUrl(id),
-            data: data,
-            params: params
+            url: this.getRequestUrl(opts.id),
+            data: opts.data,
+            params: opts.params
         })
             .then((response: AxiosResponse<object>) => {
                 return (response.status >= 200 && response.status < 300);
@@ -208,13 +205,13 @@ export abstract class Resource {
      * @param id
      * @param params
      */
-    public async getOne(id: string, params?:  object): Promise<any> {
+    public async getOne<T>(id: string, params?: any): Promise<T> {
         return this.makeRequest({
             action: HttpAction.GET,
             url: this.getRequestUrl(id),
             params: params
         })
-            .then((response: AxiosResponse<object>) => {
+            .then((response: AxiosResponse<T>) => {
                 return response.data;
             })
             .catch((err: AxiosError) => {
@@ -224,33 +221,29 @@ export abstract class Resource {
 
     /**
      * This  will get a single page of results.  To get all pages, use getAll
-     * @param start The starting index
-     * @param limit The total number of items to return (defaults to this.pageSize)
-     * @param id (Optional) In some cases, the ID needs to be used to get specific collections of resources.
-     * @param params
-     * @param expand
+     * @param opts
      */
-    public async getPage(start: number, limit?: number, id?: string, params?: object, expand?: string[]): Promise<IResourceResponse> {
-        limit = limit ? limit : this.pageSize;
+    public async getPage<T>(opts: GetPageOptions): Promise<AtlassianCollection<T> | AtlassianError> {
+        opts.limit = opts.limit ? opts.limit : this.pageSize;
 
-        const requestUrl = this.getRequestUrl(id,{
-            expand: expand ? expand.join(',') : ''
+        const requestUrl = this.getRequestUrl(opts.id, {
+            expand: opts.expand ? opts.expand.join(',') : ''
         });
 
         return this.makeRequest({
             action: HttpAction.GET,
             url: requestUrl,
             params: {
-                ...params,
-                start,
-                limit
+                ...opts.params,
+                start: opts.start,
+                limit: opts.limit
             }
         })
-            .then((response: AxiosResponse<IResourceResponse | IErrorResponse>) => {
+            .then((response: AxiosResponse<AtlassianCollection<T> | AtlassianError>) => {
                 if (response.status != 200) {
-                    throw response.data as IErrorResponse;
+                    throw response.data as AtlassianError;
                 } else {
-                    return response.data as IResourceResponse;
+                    return response.data as AtlassianCollection<T>;
                 }
             })
             .catch((err: AxiosError) => {
@@ -263,17 +256,23 @@ export abstract class Resource {
      * paging through the results on your  behalf and returning a single array.  If there could
      * be *a lot* of results (thousands) then you should stop doing what you're doing and use a different
      * approach.
-     * @param props
+     * @param opts
      */
-    public async getAll(props?: GetAllParameters): Promise<any> {
+    public async getAll<T>(opts: GetAllOptions): Promise<T[]> {
         // get the total number of items.
-        const total = await this.getPage(0, 1, props.id, props.params, props.expand).then(
-            (response: IResourceResponse) => {
+        const total = await this.getPage({
+            start: 0,
+            limit: 1,
+            id: opts.id,
+            params: opts.params,
+            expand: opts.expand
+        }).then(
+            (response: AtlassianCollection<T>) => {
                 return response.size;
             });
 
         if (!total) {
-            return [];
+            return null;
         }
 
         // What's happening:
@@ -284,11 +283,24 @@ export abstract class Resource {
 
         const remainder = (this.pageSize % total);
         const pageCount = total / this.pageSize + (remainder > 0 ? 1 : 0);
-        let results: [] = [];
+        let results: T[] = [];
         for (let i = 0; i < pageCount; i++) {
             let start = i * this.pageSize;
-            const response: IResourceResponse = await this.getPage(start, this.pageSize, props.id, props.params, props.expand);
-            results.push(...response.results);
+            const response: ResponseOrError<AtlassianCollection<T>> = await
+                this.getPage({
+                    start: start,
+                    limit: this.pageSize,
+                    id: opts.id,
+                    params: opts.params,
+                    expand: opts.expand
+                });
+
+            if (isAtlassianError<AtlassianCollection<T>>(response)) {
+                return null;
+            } else {
+                const coll = response as AtlassianCollection<T>;
+                results = results.concat(coll.results);
+            }
         }
 
         return results;

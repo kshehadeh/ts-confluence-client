@@ -1,19 +1,14 @@
 import {Resource} from "./index";
+import {AtlassianUser} from "./types";
 
-export type AtlassianGroup = {
-    type: string,
-    name: string,
-    _links: any
-}
-
-export class Group extends Resource {
+export class GroupApi extends Resource {
 
     protected getRoot() {
         return "/rest/api/group";
     }
 
     public getGroupMembers(groupName: string) {
-        return this.getAll({
+        return this.getAll<AtlassianUser>({
             id: `${groupName}/member`
         });
     }

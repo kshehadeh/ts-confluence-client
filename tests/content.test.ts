@@ -1,20 +1,25 @@
 import {v4 as uuid} from 'uuid';
-import {IErrorResponse} from "../src/resources";
+
 import {
-    ContentChildrenResponse,
+    ContentChildren,
     ContentFormat,
     ContentHistoryExpansions,
-    ContentHistoryResponse,
+    ContentHistory,
     ContentLabel,
     ContentLabelPrefixes,
     ContentProperty,
     ContentType,
     ContentVersion,
-    StringBoolean
-} from "../src/resources/content";
+    StringBoolean,
+    Space,
+    AtlassianCollection,
+    AtlassianError,
+    isAtlassianError, Content
+} from "../src/resources/types";
+
 import {getTestConfluence} from "./lib/init";
 
-describe ('Confluence: Content', () => {
+describe('Confluence: ContentApi', () => {
 
     const testRunId = uuid();
 
@@ -42,9 +47,17 @@ describe ('Confluence: Content', () => {
 
     beforeAll(async ()=>{
         // get the first space and use it for testing.
-        const spaces = await confluence.space.getPage(0,1);
-        if (spaces.results.length > 0) {
-            cfg.demoSpace = spaces.results.pop();
+        const spaces = await confluence.space.getPage<Space>({
+            start: 0,
+            limit: 1
+        });
+        if (isAtlassianError(spaces)) {
+            cfg.demoSpace = null;
+        } else {
+            const coll = (spaces as AtlassianCollection<Space>);
+            if (coll.results.length > 0) {
+                cfg.demoSpace = coll.results.pop();
+            }
         }
     });
 
@@ -59,7 +72,7 @@ describe ('Confluence: Content', () => {
                     cfg.demoPage = pages[0]
                 }
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -77,11 +90,11 @@ describe ('Confluence: Content', () => {
             format: ContentFormat.storage,
             type: ContentType.page
         })
-            .then((page: object) => {
+            .then((page: Content) => {
                 expect(page).toEqual(expect.objectContaining({'id': expect.any(String)}));
                 cfg.demoPage = page;
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
 
@@ -92,14 +105,14 @@ describe ('Confluence: Content', () => {
             console.warn("Specific page to load was not found in previous steps");
             expect(true);
         }
-        await confluence.content.getOne(cfg.demoPage.id)
-            .then((page: object) => {
+        await confluence.content.getOne<Content>(cfg.demoPage.id)
+            .then((page: Content) => {
                 expect(page).toEqual(expect.objectContaining({'id': expect.any(String)}));
                 if (!cfg.demoPage) {
                     cfg.demoPage = page;
                 }
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -124,7 +137,7 @@ describe ('Confluence: Content', () => {
                 .then((page: object) => {
                     expect(page).toEqual(expect.objectContaining({'title': cfg.updatedTitle}));
                 })
-                .catch((err: IErrorResponse) => {
+                .catch((err: AtlassianError) => {
                     throw new Error(`Error occurred: ${err.message}`);
                 });
         }
@@ -140,7 +153,7 @@ describe ('Confluence: Content', () => {
                 .then((pages: object[]) => {
                     expect(pages.length).toEqual(1);
                 })
-                .catch((err: IErrorResponse) => {
+                .catch((err: AtlassianError) => {
                     throw new Error(`Error occurred: ${err.message}`);
                 });
         }
@@ -162,7 +175,7 @@ describe ('Confluence: Content', () => {
                 .then((attachments: any[]) => {
                     expect(attachments.length).toEqual(1);
                 })
-                .catch((err: IErrorResponse) => {
+                .catch((err: AtlassianError) => {
                     throw new Error(`Error occurred: ${err.message}`);
                 });
 
@@ -174,7 +187,7 @@ describe ('Confluence: Content', () => {
                 .then((attachments: any[]) => {
                     expect(attachments.length).toEqual(1);
                 })
-                .catch((err: IErrorResponse) => {
+                .catch((err: AtlassianError) => {
                     throw new Error(`Error occurred: ${err.message}`);
                 });
         }
@@ -198,7 +211,7 @@ describe ('Confluence: Content', () => {
                 expect(page).toEqual(expect.objectContaining({'id': expect.any(String)}));
                 cfg.demoChildPage = page;
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
 
@@ -208,11 +221,11 @@ describe ('Confluence: Content', () => {
         // @ts-ignore
         await confluence.content.getContentChildren(cfg.demoPage.id,
             [ContentType.attachment,ContentType.page])
-            .then((results: ContentChildrenResponse) => {
+            .then((results: ContentChildren) => {
                 expect(results.attachment.results.length).toBeGreaterThanOrEqual(1);
                 expect(results.page.results.length).toBeGreaterThanOrEqual(1);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -225,7 +238,7 @@ describe ('Confluence: Content', () => {
             .then((attachments: any[]) => {
                 expect(attachments.length).toBeGreaterThan(0);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -238,7 +251,7 @@ describe ('Confluence: Content', () => {
             .then((prop: ContentProperty) => {
                 expect(prop.key).toBe("testProp")
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -251,7 +264,7 @@ describe ('Confluence: Content', () => {
             .then((prop: ContentProperty) => {
                 expect(prop.key).toBe("testProp")
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -265,7 +278,7 @@ describe ('Confluence: Content', () => {
             .then((prop: ContentProperty) => {
                 expect(prop.key).toBe("testProp")
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -275,27 +288,22 @@ describe ('Confluence: Content', () => {
         await confluence.content.getContentHistory(cfg.demoPage.id,
             [ContentHistoryExpansions.contributors, ContentHistoryExpansions.history]
             )
-            .then((hist: ContentHistoryResponse) => {
+            .then((hist: ContentHistory) => {
                 console.log(hist);
-                expect(hist.history.latest).toBe(true);
+                expect(hist.latest).toBe(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('create a label', async () => {
-        await confluence.content.addContentLabel(cfg.demoPage.id,
-            {
-                prefix: ContentLabelPrefixes.global,
-                name: "label"
-            }
-        )
+        await confluence.content.addContentLabel(cfg.demoPage.id, "label")
             .then((labels: ContentLabel[]) => {
                 console.log(labels);
                 expect(labels.length).toBeGreaterThan(0);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 3000);
@@ -308,7 +316,7 @@ describe ('Confluence: Content', () => {
             .then((labels: ContentLabel[]) => {
                 expect(labels.length).toBeGreaterThan(0);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -321,7 +329,7 @@ describe ('Confluence: Content', () => {
                 expect(versions.length).toBeGreaterThan(1);
                 cfg.demoVersion = versions[1]
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -336,7 +344,7 @@ describe ('Confluence: Content', () => {
             .then((version: ContentVersion) => {
                 expect(version.number).toBeGreaterThan(0);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -351,7 +359,7 @@ describe ('Confluence: Content', () => {
             .then((version: ContentVersion) => {
                 expect(version.number).toBeGreaterThan(0);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -366,11 +374,11 @@ describe ('Confluence: Content', () => {
         //  delete that page - otherwise we get an "rollback" error from Atlassian.
         await sleep(2000);
 
-        await confluence.content.remove(cfg.demoPage.id)
+        await confluence.content.remove({id: cfg.demoPage.id})
             .then((deleted: boolean) => {
                 expect(deleted).toEqual(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -384,7 +392,7 @@ describe ('Confluence: Content', () => {
             .then((deleted: boolean) => {
                 expect(deleted).toEqual(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);

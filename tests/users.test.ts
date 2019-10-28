@@ -1,6 +1,10 @@
-import {IErrorResponse} from "../src/resources";
-import {AtlassianUser} from "../src/resources/user";
-import {AtlassianGroup} from "../src/resources/group";
+import {
+    AtlassianCollection,
+    AtlassianError,
+    AtlassianGroup,
+    AtlassianUser,
+    isAtlassianError, Space
+} from "../src/resources/types";
 import {getTestConfluence} from "./lib/init";
 
 describe('Confluence: Users', () => {
@@ -17,7 +21,16 @@ describe('Confluence: Users', () => {
 
     beforeAll(async () => {
         // get the first space and use it for testing.
-        const spaces = await confluence.space.getPage(0, 1);
+        let spaces = await confluence.space.getPage<Space>({
+            start: 0,
+            limit: 1
+        });
+
+        if (isAtlassianError<AtlassianCollection<Space>>(spaces)) {
+            throw spaces as AtlassianError;
+        } else {
+            spaces = spaces as AtlassianCollection<Space>;
+        }
         if (spaces.results.length > 0) {
             testData.testSpace = spaces.results.pop();
             const pages = await confluence.content.getPagesInSpace(testData.testSpace.key);
@@ -44,7 +57,7 @@ describe('Confluence: Users', () => {
                 expect(user).toHaveProperty('accountId');
                 testData.testAccountId = user.accountId;
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -54,7 +67,7 @@ describe('Confluence: Users', () => {
             .then((groups: AtlassianGroup[]) => {
                 expect(groups.length).toBeGreaterThan(0);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -67,7 +80,7 @@ describe('Confluence: Users', () => {
                 // is considered successful.
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -79,7 +92,7 @@ describe('Confluence: Users', () => {
                 // there is no return value for this.
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -91,7 +104,7 @@ describe('Confluence: Users', () => {
                 // there is no return value for this.
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -103,7 +116,7 @@ describe('Confluence: Users', () => {
                 // there is no return value for this.
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -115,7 +128,7 @@ describe('Confluence: Users', () => {
                 // there is no return value for this.
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -125,7 +138,7 @@ describe('Confluence: Users', () => {
             .then(() => {
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -135,7 +148,7 @@ describe('Confluence: Users', () => {
             .then(() => {
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -145,7 +158,7 @@ describe('Confluence: Users', () => {
             .then(() => {
                 expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);

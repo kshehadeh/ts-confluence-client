@@ -1,7 +1,19 @@
 import {AxiosError, AxiosResponse} from "axios";
 import * as fs from "fs";
-import {HttpAction, HttpContentType, IErrorResponse, IResourceResponse, Resource} from "./index";
-import {AtlassianUser} from "./user";
+import {HttpAction, HttpContentType, Resource} from "./index";
+
+import {
+    AtlassianCollection,
+    AtlassianError, Content,
+    ContentChildren,
+    ContentFormat,
+    ContentHistory,
+    ContentHistoryExpansions,
+    ContentLabel,
+    ContentLabelPrefixes, ContentProperty, ContentStatus,
+    ContentType, ContentVersion,
+    StringBoolean
+} from "./types";
 
 interface IContentRequest {
     type: string,
@@ -18,40 +30,6 @@ interface IBlogRequest extends IContentRequest {
     postingDay?: string
 }
 
-/**
- * These are the Confluence Content Types that are supported by the API
- */
-export enum ContentType {
-    page = 'page',
-    blogpost = 'blogpost',
-    comment = 'comment',
-    attachment = 'attachment'
-}
-
-/**
- * Most of the  type, the format you will be  requesting the  content in is "storage"
- * meaning the raw format (as it is "stored" in Confluence backend).
- */
-export enum ContentFormat {
-    storage = 'storage',
-    styled_view = 'styled_view',
-    view = 'view',
-    export_view = 'export_view'
-}
-
-/**
- * Content properties are  custom data that you can associated with  pages. The  object
- * below is the Confluence API's definition of the content prop's values.
- */
-export type ContentProperty = {
-    id?: string,
-    key: string,
-    value: any,
-    version?: any,
-    content?: any,
-    _links?: any
-}
-
 export type CreatePageProperties = {
     title: string,
     space: string,
@@ -60,7 +38,6 @@ export type CreatePageProperties = {
     format: ContentFormat,
     parentId?: string
 }
-
 
 export type UpdatePageProperties = {
     title: string,
@@ -82,18 +59,6 @@ export type SearchContentProperties = {
     expand: string[]
 }
 
-export enum ContentStatus {
-    current = "current",
-    trashed = "trashed",
-    historical = "historical",
-    draft = "draft"
-}
-
-export enum StringBoolean {
-    true = "true",
-    false = "false"
-}
-
 export type AttachmentProperties = {
     file: string,
     comment: string,
@@ -105,109 +70,7 @@ export type GetAttachmentProperties = {
     filename?: string
 }
 
-export type ContentChildrenResponse = {
-    attachment?: IResourceResponse,
-    page?: IResourceResponse,
-    comment?: IResourceResponse,
-    _expandable: any,
-    _links: any
-}
-
-
-export type ContentVersion = {
-    by: AtlassianUser,
-    when: string,
-    friendlyWhen: string,
-    message: string,
-    number: number,
-    minorEdit: boolean,
-    content: any,
-    collaborators: {
-        users: AtlassianUser[],
-        userKeys: string[]
-    }
-    _expandable: any
-    _links: any
-}
-
-export type ContentHistoryResponse = {
-    id: string,
-    space: any,
-    title: string,
-    status: ContentStatus,
-    version: ContentVersion,
-    history: ContentHistory
-    type: ContentType,
-    _expandable: any,
-    _links: any
-}
-
-export type ContentHistory = {
-    latest: boolean
-    createdBy: AtlassianUser
-    createdDate: string,
-    lastUpdated: ContentVersion
-    previousVersion: ContentVersion
-    contributors: any
-    nextVersion: ContentVersion,
-    _expandable: any,
-    _links: any
-}
-
-export enum ContentHistoryExpansions {
-    lastUpdated = "lastUpdated",
-    previousVersion = "previousVersion",
-    contributors = "contributors",
-    history = "history",
-    nextVersion = "nextVersion"
-}
-
-export type ContentLabel = {
-    prefix: string,
-    name: string,
-    id?: string,
-    label?: string
-}
-
-export enum ContentLabelPrefixes {
-    global= "global",
-    my= "my",
-    team= "team"
-}
-
-export class Content extends Resource {
-
-    availableExpansions: object = {
-        "childTypes.all": "returns whether the content has attachments, comments, or child pages. Use this if you only need to check whether the content has children of a particular type.",
-        "childTypes.attachment": "returns whether the content has attachments.",
-        "childTypes.comment": "returns whether the content has comments.",
-        "childTypes.page": "returns whether the content has child pages.",
-        "container": "returns the space that the content is in. This is the same as the information returned by Get space.",
-        "metadata.currentuser": "returns information about the current user in relation to the content, including when they last viewed it, modified it, contributed to it, or added it as a favourite.",
-        "metadata.properties": "returns content properties that have been set via the Confluence REST API.",
-        "metadata.labels": "returns the labels that have been added to the content.",
-        "metadata.frontend": "(this property is only used by Atlassian)",
-        "operations": "returns the operations for the content, which are used when setting permissions.",
-        "children.page": "returns pages that are descendants at the level immediately below the content.",
-        "children.attachment": "returns all attachments for the content.",
-        "children.comment": "returns all comments on the content.",
-        "restrictions.read.restrictions.user": "returns the users that have permission to read the content.",
-        "restrictions.read.restrictions.group": "returns the groups that have permission to read the content. Note that this may return deleted groups, because deleting a group doesn't remove associated restrictions.",
-        "restrictions.update.restrictions.user": "returns the users that have permission to update the content.",
-        "restrictions.update.restrictions.group": "returns the groups that have permission to update the content. Note that this may return deleted groups, because deleting a group doesn't remove associated restrictions.",
-        "history": "returns the history of the content, including the date it was created.",
-        "history.lastUpdated": "returns information about the most recent update of the content, including who updated it and when it was updated.",
-        "history.previousVersion": "returns information about the update prior to the current content update.",
-        "history.contributors": "returns all of the users who have contributed to the content.",
-        "history.nextVersion": "returns information about the update after to the current content update.",
-        "ancestors": "returns the parent page, if the content is a page.",
-        "body": "returns the body of the content in different formats, including the editor format, view format, and export format.",
-        "version": "returns information about the most recent update of the content, including who updated it and when it was updated.",
-        "descendants.page": "returns pages that are descendants at any level below the content.",
-        "descendants.attachment": "returns all attachments for the content, same as children.attachment.",
-        "descendants.comment": "returns all comments on the content, same as children.comment.",
-        "space": "returns the space that the content is in. This is the same as the information returned by Get space.",
-    };
+export class ContentApi extends Resource {
 
     defaultExpansions: string[] = ["space", "history", "version"];
 
@@ -228,14 +91,15 @@ export class Content extends Resource {
             status: ContentStatus.current,
             space: {key: props.space},
             ancestors: props.parentId ? [{id: props.parentId}] : null,
-            body: {},
+            body: {
+                view: {
+                    value: props.body,
+                    representation: "view"
+                }
+            }
         };
 
-        params.body[props.type] = {
-            "value": props.body,
-            "representation": "view"
-        };
-        return this.create({
+        return this.create<Content, Content>({
             data: params
         });
     }
@@ -246,7 +110,7 @@ export class Content extends Resource {
      * @param propKey The property key to retrieve the value for
      */
     public async getContentProperty(id: string, propKey: string) {
-        return this.getOne(`${id}/property/${propKey}`)
+        return this.getOne<ContentProperty>(`${id}/property/${propKey}`)
             .then((prop: ContentProperty) => {
                 return prop;
             });
@@ -259,7 +123,7 @@ export class Content extends Resource {
      * @param propValue The value of the property.  This must be a javascript object.
      */
     public async createContentProperty(id: string, propKey: string, propValue: object) {
-        return this.create({
+        return this.create<ContentProperty, ContentProperty>({
             id: `${id}/property`,
             data: {
                 key: propKey,
@@ -283,9 +147,12 @@ export class Content extends Resource {
                 return prop.version.number;
             })
             .then((versionNum: number) => {
-                return this.update({
+                return this.update<ContentProperty>({
                     id: `${id}/property/${propKey}`,
                     data: {
+                        // The key is not strictly necessary since it is part of the path but resolves
+                        // type issues when excluded
+                        key: propKey,
                         value: propValue,
                         version: {
                             number: versionNum + 1,
@@ -330,16 +197,16 @@ export class Content extends Resource {
     public async updateContent(id: string, props: UpdatePageProperties) {
         if (!props.version) {
             // get the version and automatically increment for them.
-            const existingPage = await this.getOne(id);
+            const existingPage = await this.getOne<Content>(id);
             if (!existingPage) {
                 throw "Unable to find page with id " + id;
             } else {
-                props.version = parseInt(existingPage.version.number) + 1;
+                props.version = existingPage.version.number + 1;
             }
         }
         let params = {
             title: props.title,
-            version: {"number": props.version},
+            version: {number: props.version},
             type: props.type ? props.type : ContentType.page,
             status: ContentStatus.current,
             ancestors: props.parentId ? {id: props.parentId} : null,
@@ -347,8 +214,8 @@ export class Content extends Resource {
         };
 
         params.body[props.type] = {
-            "value": props.body,
-            "representation": "view"
+            value: props.body,
+            representation: "view"
         };
         return this.update({id, data: params});
     }
@@ -360,13 +227,18 @@ export class Content extends Resource {
      * @param id
      */
     public async permanentlyDelete(id: string) {
-        const page = await this.getOne(id, {status: ContentStatus.trashed});
+        const page = await this.getOne<Content>(id, {status: ContentStatus.trashed});
         if (page) {
             // we can only permanently delete if the item is already in the trash.
             if (page.status === ContentStatus.trashed) {
-                return this.remove(id, null, {status: ContentStatus.trashed});
+                return this.remove({
+                    id: id,
+                    data: {
+                        status: ContentStatus.trashed
+                    }
+                });
             } else {
-                return this.remove(id).then((deleted: boolean) => {
+                return this.remove({id}).then((deleted: boolean) => {
                     if (deleted) {
                         return this.permanentlyDelete(id);
                     } else {
@@ -398,11 +270,11 @@ export class Content extends Resource {
                 expand: childTypes.join(','),
             }
         })
-            .then((response: AxiosResponse<IErrorResponse | ContentChildrenResponse>) => {
+            .then((response: AxiosResponse<AtlassianError | ContentChildren>) => {
                 if (response.status != 200) {
-                    throw response.data as IErrorResponse;
+                    throw response.data as AtlassianError;
                 } else {
-                    return response.data as ContentChildrenResponse;
+                    return response.data as ContentChildren;
                 }
             })
             .catch((err: AxiosError) => {
@@ -497,10 +369,10 @@ export class Content extends Resource {
      * @param expand
      */
     public getContentHistory(id: string, expand: ContentHistoryExpansions[]) {
-        return this.getOne(id, {
+        return this.getOne(`${id}/history`, {
             expand: expand.join(',')
         })
-            .then((history: ContentHistoryResponse) => {
+            .then((history: ContentHistory) => {
                 return history;
             });
     }
@@ -511,15 +383,15 @@ export class Content extends Resource {
      * @param labelName
      */
     public addContentLabel(id: string, labelName: string) {
-        return this.create({
+        return this.create<ContentLabel, AtlassianCollection<ContentLabel>>({
             id: `${id}/label`,
             data: {
                 prefix: 'global',
                 name: labelName
             }
-        }).then((res: IResourceResponse)=>{
-            return res.results
-        })
+        }).then((res: AtlassianCollection<ContentLabel>) => {
+            return res.results;
+        });
     }
 
     /**
@@ -529,11 +401,13 @@ export class Content extends Resource {
      */
     public removeContentLabel(id: string, label: ContentLabel) {
         return this.remove(
-            `${id}/label`,
-            label
-        ).then(() => {
-            return true;
-        });
+            {
+                id: `${id}/label`,
+                data: label
+            })
+            .then(() => {
+                return true;
+            });
     }
 
     /**
@@ -541,24 +415,24 @@ export class Content extends Resource {
      * @param id
      * @param prefixFilter Only returns labels that have the given prefix (defaults to global)
      */
-    public getContentLabels(id:string, prefixFilter: ContentLabelPrefixes=ContentLabelPrefixes.global) {
+    public getContentLabels(id: string, prefixFilter: ContentLabelPrefixes = ContentLabelPrefixes.global) {
         return this.getAll({
             id: `${id}/label`,
             params: {
                 prefix: prefixFilter
             }
-        }).then((labels: ContentLabel[])=>{
-            return labels
-        })
+        }).then((labels: ContentLabel[]) => {
+            return labels;
+        });
     }
 
     public getContentVersions(id: string) {
         return this.getAll({
             id: `${id}/version`,
         })
-            .then((versions: ContentVersion[])=>{
+            .then((versions: ContentVersion[]) => {
                 return versions;
-            })
+            });
     }
 
     public getContentVersion(id: string, version: number, expand: string[]) {
@@ -566,9 +440,9 @@ export class Content extends Resource {
                 expand: expand ? expand.join(',') : null
             }
         )
-            .then((version: ContentVersion)=>{
+            .then((version: ContentVersion) => {
                 return version;
-            })
+            });
     }
 
     /**
@@ -591,6 +465,6 @@ export class Content extends Resource {
         })
             .then((version: ContentVersion) => {
                 return version;
-            })
+            });
     }
 }

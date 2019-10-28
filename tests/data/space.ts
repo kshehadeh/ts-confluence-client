@@ -1,7 +1,7 @@
 
 export const confluenceTestSpace = {
   "key": "JEST",
-  "name": "Jest Test Space",
+  "name": "Jest Test SpaceApi",
   "description": {
     "plain": {
       "value": "This is a test for jest",
@@ -11,5 +11,5 @@ export const confluenceTestSpace = {
 };
 
 export const confluenceTestSpaceUpdate = {
-  "name": "Jest Test Space Updated"
+  "name": "Jest Test SpaceApi Updated"
 };

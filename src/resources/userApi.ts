@@ -1,29 +1,7 @@
-import {AtlassianGroup} from "./group";
 import {Resource} from "./index";
+import {AtlassianUser, AtlassianGroup} from "./types";
 
-export type AtlassianUser = {
-    type: string, //known, unknown, anonymous, user
-    username: string,
-    accountId: string,
-    accountType: string,
-    email: string,
-    publicName: string,
-    profilePicture: any,
-    displayName: string,
-    operations: {
-        operation: string,
-        targetType: string
-    }[]
-    details: {
-        business?: any,
-        personal?: any
-    },
-    personalSpace: any
-    _expandable: any
-    _links: any
-}
-
-export class User extends Resource {
+export class UserApi extends Resource {
 
     protected getRoot() {
         return "/rest/api/user";
@@ -80,13 +58,12 @@ export class User extends Resource {
     }
 
     public removeContentWatcherForUser(accountId: string, contentId: string) {
-        return this.remove(
-            `watch/content/${contentId}`,
-            null,
-            {
+        return this.remove({
+            id: `watch/content/${contentId}`,
+            params: {
                 accountId: accountId
             }
-        );
+        });
     }
 
     public addLabelWatchStatusForUser(accountId: string, labelName: string) {
@@ -99,14 +76,13 @@ export class User extends Resource {
         });
     }
 
-    public removeLabelWatcherForUser(accountId: string, contentId: string) {
-        return this.remove(
-            `watch/space/${contentId}`,
-            null,
-            {
+    public removeLabelWatcherForUser(accountId: string, labelName: string) {
+        return this.remove({
+            id: `watch/label/${labelName}`,
+            params: {
                 accountId: accountId
             }
-        );
+        });
     }
 
     public getSpaceWatchStatusForUser(accountId: string, spaceKey: string) {
@@ -129,13 +105,12 @@ export class User extends Resource {
     }
 
     public removeSpaceWatcherForUser(accountId: string, spaceKey: string) {
-        return this.remove(
-            `watch/space/${spaceKey}`,
-            null,
-            {
+        return this.remove({
+            id: `watch/space/${spaceKey}`,
+            params: {
                 accountId: accountId
             }
-        );
+        });
     }
 
 }

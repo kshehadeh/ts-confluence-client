@@ -1,12 +1,12 @@
-import {IErrorResponse} from "../src/resources";
+import {AtlassianError, LookAndFeel, LookAndFeelSettings, SystemInfo} from "../src/resources/types";
 import {getTestConfluence} from "./lib/init";
 
-describe ('Confluence: Settings', () => {
+describe('Confluence: SettingsApi', () => {
 
     const confluence = getTestConfluence();
 
     type SettingsConfig = {
-        currentLookAndFeelSettings?: object,
+        currentLookAndFeel?: LookAndFeel,
         defaultTestColor: string
     }
     const cfg:SettingsConfig = {
@@ -14,63 +14,54 @@ describe ('Confluence: Settings', () => {
     };
 
     it('will retrieve look and feel settings', async () => {
-        await confluence.settings.getOne('lookandfeel')
-            .then((settings: object) => {
+        await confluence.settings.getOne<LookAndFeelSettings>('lookandfeel')
+            .then((settings: LookAndFeelSettings) => {
                 expect(settings).toEqual(expect.objectContaining({'global':expect.any(Object)}));
                 // @ts-ignore
-                cfg.currentLookAndFeelSettings = settings.global;
+                cfg.currentLookAndFeel = settings.global;
 
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('update look and feel settings', async () => {
-        let newLfSettings = cfg.currentLookAndFeelSettings;
+        let newLfSettings = cfg.currentLookAndFeel;
 
         // @ts-ignore
         newLfSettings.headings.color = cfg.defaultTestColor;
-        await confluence.settings.create(newLfSettings,'lookandfeel/custom')
-            .then((LfSettings: object) => {
+        await confluence.settings.create<LookAndFeel, LookAndFeel>({data: newLfSettings, id: 'lookandfeel/custom'})
+            .then((LfSettings: LookAndFeel) => {
                 expect(LfSettings).toEqual(
                     expect.objectContaining({'headings': { 'color': cfg.defaultTestColor}}));
 
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('reset look and feel settings', async () => {
-        await confluence.settings.remove('lookandfeel/custom')
+        await confluence.settings.remove({id: 'lookandfeel/custom'})
             .then((deleted: boolean) => {
                 expect(deleted).toEqual(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('will retrieve system info', async () => {
-        await confluence.settings.getOne('systemInfo')
-            .then((settings: object) => {
+        await confluence.settings.getOne<SystemInfo>('systemInfo')
+            .then((settings: SystemInfo) => {
                 expect(settings).toEqual(expect.objectContaining({'cloudId':expect.any(String)}));
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
-    it('will retrieve system info', async () => {
-        await confluence.settings.getOne('systemInfo')
-            .then((settings: object) => {
-                expect(settings).toEqual(expect.objectContaining({'cloudId':expect.any(String)}));
-            })
-            .catch((err: IErrorResponse) => {
-                throw new Error(`Error occurred: ${err.message}`);
-            });
-    }, 30000);
 });
 
 describe ('Confluence: Themes', () => {
@@ -89,7 +80,7 @@ describe ('Confluence: Themes', () => {
                 // @ts-ignore
                 cfg.themeKey = theme.themeKey;
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 if (err.statusCode === 404) {
                     // this is expected when there is no global theme assigned.
                     expect(true);
@@ -102,7 +93,7 @@ describe ('Confluence: Themes', () => {
 
     it('will retrieve specific theme', async () => {
         if (!cfg.themeKey) {
-            console.warn("Skipping specific theme test because there are no themes in the test instance")
+            console.warn("Skipping specific theme test because there are no themes in the test instance");
             expect(true);
             return;
         }
@@ -111,17 +102,17 @@ describe ('Confluence: Themes', () => {
             .then((theme: object) => {
                 expect(theme).toEqual(expect.objectContaining({'themeKey':expect.any(String)}));
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('will retrieve all themes', async () => {
-        await confluence.themes.getAll({})
-            .then((themes: []) => {
-                expect(themes.length).toBeGreaterThanOrEqual(0);
+        await confluence.themes.getAll({id: ""})
+            .then(() => {
+                expect(true);
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);

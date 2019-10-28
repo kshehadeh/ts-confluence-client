@@ -1,4 +1,4 @@
-import {IErrorResponse} from "../src/resources";
+import {AtlassianError, Space} from "../src/resources/types";
 import {confluenceTestSpace, confluenceTestSpaceUpdate} from "./data/space";
 import {getTestConfluence} from "./lib/init";
 
@@ -12,16 +12,6 @@ describe ('Confluence: Spaces', () => {
 
     const confluence = getTestConfluence();
 
-    it('will retrieve the total number of spaces', async () => {
-        await confluence.space.getTotal()
-            .then((count: number) => {
-                expect(count > 0)
-            })
-            .catch((err: IErrorResponse) => {
-                throw new Error(`Error occurred: ${err.message}`);
-            });
-    }, 30000);
-
     it('will retrieve all spaces', async () => {
         await confluence.space.getAll({})
             .then((spaces: []) => {
@@ -30,7 +20,7 @@ describe ('Confluence: Spaces', () => {
                 cfg.firstSpaceKey = spaces[0].key;
 
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
@@ -42,43 +32,51 @@ describe ('Confluence: Spaces', () => {
                     "key": expect.any(String)
                 }));
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('will create a space', async () => {
-        await confluence.space.create(confluenceTestSpace)
-            .then((space: object) => {
+        await confluence.space.create<Space, Space>({
+            data: confluenceTestSpace
+        })
+            .then((space: Space) => {
                 expect(space).toEqual(expect.objectContaining({
                     "key": expect.any(String)
                 }));
                 cfg.createdSpace = space;
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('will update a space', async () => {
-        await confluence.space.update(cfg.createdSpace.key,confluenceTestSpaceUpdate)
-            .then((space: object) => {
+        await confluence.space.update<Space>({
+            id: cfg.createdSpace.key,
+            data: {
+                key: cfg.createdSpace.key,
+                ...confluenceTestSpaceUpdate
+            }
+        })
+            .then((space: Space) => {
                 expect(space).toEqual(expect.objectContaining({
                     "key": expect.any(String)
                 }));
                 cfg.createdSpace = space;
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('will delete a space', async () => {
-        await confluence.space.remove(cfg.createdSpace.key)
+        await confluence.space.remove({id: cfg.createdSpace.key})
             .then((deleted: boolean) => {
                 expect(deleted)
             })
-            .catch((err: IErrorResponse) => {
+            .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
