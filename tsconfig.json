@@ -4,7 +4,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "allowJs": true,
     "importHelpers": true,
     "jsx": "react",
     "alwaysStrict": true,
@@ -20,7 +19,6 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*",
-    "__tests__/**/*"
+    "src/**/*"
   ]
 }

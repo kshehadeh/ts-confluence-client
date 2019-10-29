@@ -1,6 +1,6 @@
 # Typescript Confluence Client
 
-A client for the Confluence Cloud API written in TypeScript.
+A client for the Confluence Cloud API written in TypeScript.  
 
 # Installation
 
@@ -8,10 +8,13 @@ A client for the Confluence Cloud API written in TypeScript.
     
 # Usage
 
+
+Example of code for updating an attachment.
+
     const confluence = new Confluence({
-        host: process.env.CONFLUENCE_HOST,
-        username: process.env.CONFLUENCE_USERNAME,
-        apiToken: process.env.CONFLUENCE_API_KEY
+        host: process.env.CONFLUENCE_HOST,          // e.g. https://myconf.atlassian.net/wiki
+        username: process.env.CONFLUENCE_USERNAME,  // e.g. me@email.com
+        apiToken: process.env.CONFLUENCE_API_KEY    // e.g. XXXXXXXXXXXXXXXXXXXXXX
     });
     
     confluence.content.updateAttachment('294913',{        
@@ -26,7 +29,20 @@ A client for the Confluence Cloud API written in TypeScript.
             throw new Error(`Error occurred: ${err.message}`);
         });
 
-# Run Tests
+# Development
+
+## Running tests
     
+Before running tests you will need to define the environment variables either directly using export in your shell before
+running the tests or by create a .env file in the root that looks something like this:
+
+    CONFLUENCE_HOST=https://myconf.atlassian.net/wiki
+    CONFLUENCE_USERNAME=me@email.com
+    CONFLUENCE_API_KEY=XXXXXXXXXXXXXXXXXXXXXX
+
+Then run tests using:
+ 
     npm run test
+    
+
     

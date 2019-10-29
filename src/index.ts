@@ -13,6 +13,9 @@ export type ConfConnectionInfo = {
     apiToken: string
 }
 
+/**
+ * The Confluence API manager.  Instantiate this to interact with the API.
+ */
 export class Confluence {
     protected _connection: ConfConnectionInfo;
     public space: SpaceApi;
