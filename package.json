@@ -1,6 +1,6 @@
 {
   "name": "ts-confluence-client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Modern confluence client written in Typescript.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,10 +32,7 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "prepare": "npm run build",
-    "prepublishOnly": "npm test && npm run lint",
-    "preversion": "npm run lint",
-    "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags"
+    "prepublishOnly": "npm test && npm run lint"
   },
   "author": "Karim Shehadeh",
   "license": "Apache-2.0",
