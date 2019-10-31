@@ -2,7 +2,8 @@
   "name": "ts-confluence-client",
   "version": "0.0.1",
   "description": "Modern confluence client written in Typescript.",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "engines": {
     "node": ">= 10.13 <11"
   },

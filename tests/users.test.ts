@@ -37,7 +37,7 @@ describe('Confluence: Users', () => {
             if (pages.length > 0) {
                 testData.testPage = pages.pop();
                 const labels = await confluence.content.getContentLabels(testData.testPage.id);
-                if (labels.length > 0) {
+                if (labels && labels.length > 0) {
                     testData.testExistingLabel = labels.pop();
                 } else {
                     testData.testAddedLabel = await confluence.content.addContentLabel(
