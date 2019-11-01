@@ -1,9 +1,8 @@
-import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { ConfConnectionInfo } from '..';
+import { AtlassianCollection, AtlassianError, isAtlassianError, ResponseOrError } from './types';
 
 const FormData = require('form-data');
-
-import {ConfConnectionInfo} from "..";
-import {AtlassianCollection, AtlassianError, isAtlassianError, ResponseOrError} from "./types";
 
 export enum HttpAction {
     GET = 'GET',
@@ -259,37 +258,16 @@ export abstract class Resource {
      * @param opts
      */
     public async getAll<T>(opts: GetAllOptions): Promise<T[]> {
-        // get the total number of items.
-        const total = await this.getPage({
-            start: 0,
-            limit: 1,
-            id: opts.id,
-            params: opts.params,
-            expand: opts.expand
-        }).then(
-            (response: AtlassianCollection<T>) => {
-                return response.size;
-            });
-
-        if (!total) {
-            return null;
-        }
-
-        // What's happening:
-        //  + We're calculating the total number of times we need to page the results (it is a total/batchsize + 1 if
-        //  there's a remainder.
-        //  + Then we are iterating over each 'batch' and waiting for the response from the server before
-        //  getting the next.  Opting to do this rather than running concurrently to avoid bashing the  server.
-
-        const remainder = (this.pageSize % total);
-        const pageCount = total / this.pageSize + (remainder > 0 ? 1 : 0);
+        const BATCH_SIZE = 100;
         let results: T[] = [];
-        for (let i = 0; i < pageCount; i++) {
-            let start = i * this.pageSize;
+        let resultSize = BATCH_SIZE;
+        let page = 0;
+        let start = 0;
+        while (resultSize >= BATCH_SIZE){
             const response: ResponseOrError<AtlassianCollection<T>> = await
                 this.getPage({
                     start: start,
-                    limit: this.pageSize,
+                    limit: resultSize,
                     id: opts.id,
                     params: opts.params,
                     expand: opts.expand
@@ -300,7 +278,12 @@ export abstract class Resource {
             } else {
                 const coll = response as AtlassianCollection<T>;
                 results = results.concat(coll.results);
+                resultSize = coll.size;
             }
+            page += 1;
+            start = (page * resultSize)+1;
+
+            // we can assume that if the result size is not equal to the limit
         }
 
         return results;
