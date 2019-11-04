@@ -54,11 +54,6 @@ export type CqlContextProperties = {
     contentStatuses?: ContentStatus[]
 }
 
-export type SearchContentProperties = {
-    context?: CqlContextProperties,
-    expand: string[]
-}
-
 export type AttachmentProperties = {
     file: string,
     comment: string,
@@ -169,20 +164,20 @@ export class ContentApi extends Resource {
     /**
      * This will do a CQL search and page all the results returning all of them at once.
      * @param cql The search query
-     * @param props
+     * @param context
      */
-    public async searchContent(cql: string, props?: SearchContentProperties) {
-        const ctx = props && props.context ? {
-            space: props.context.spaceKey ? props.context.spaceKey : null,
-            contentId: props.context.contentId ? props.context.contentId : null,
-            contentStatuses: props.context.contentStatuses ? props.context.contentStatuses.join(',') : null
+    public async searchContent(cql: string, context?: CqlContextProperties) {
+        const ctx = context ? {
+            space: context.spaceKey ? context.spaceKey : null,
+            contentId: context.contentId ? context.contentId : null,
+            contentStatuses: context.contentStatuses ? context.contentStatuses.join(',') : null
         } : null;
 
         return this.getAll({
             id: 'search', params: {
                 cql: cql,
                 context: ctx,
-                expand: props && props.expand ? props.expand : null
+                expand: null
             }
         });
     }
