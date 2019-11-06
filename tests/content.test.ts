@@ -243,6 +243,19 @@ describe('Confluence: ContentApi', () => {
             });
     }, 30000);
 
+    it('will retrieve child pages', async () => {
+        // @ts-ignore
+        await confluence.content.getChildPages(cfg.demoPage.id,
+            ['metadata.properties', 'history']
+            )
+            .then((pages: AtlassianCollection<Content>) => {
+                expect(pages.results.length).toBeGreaterThan(0);
+            })
+            .catch((err: AtlassianError) => {
+                throw new Error(`Error occurred: ${err.message}`);
+            });
+    }, 30000);
+
     it('will create a content property', async () => {
         // @ts-ignore
         await confluence.content.createContentProperty(cfg.demoPage.id,

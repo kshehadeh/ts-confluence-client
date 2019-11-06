@@ -1,19 +1,23 @@
-import {AxiosError, AxiosResponse} from "axios";
-import * as fs from "fs";
-import {HttpAction, HttpContentType, Resource} from "./index";
+import { AxiosError, AxiosResponse } from 'axios';
+import * as fs from 'fs';
+import { HttpAction, HttpContentType, Resource } from './index';
 
 import {
     AtlassianCollection,
-    AtlassianError, Content,
+    AtlassianError,
+    Content,
     ContentChildren,
     ContentFormat,
     ContentHistory,
     ContentHistoryExpansions,
     ContentLabel,
-    ContentLabelPrefixes, ContentProperty, ContentStatus,
-    ContentType, ContentVersion,
-    StringBoolean
-} from "./types";
+    ContentLabelPrefixes,
+    ContentProperty,
+    ContentStatus,
+    ContentType,
+    ContentVersion,
+    StringBoolean,
+} from './types';
 
 interface IContentRequest {
     type: string,
@@ -244,6 +248,36 @@ export class ContentApi extends Resource {
         } else {
             throw `Unable to find a page with the given ID ${id} and the status "trashed"`;
         }
+    }
+
+    /**
+     * This will specifically return child _pages_ for a given page.  This
+     * is separate from getContentChildren because this call will  allow you
+     * to expand individual content entities, whereas the other will noot.
+     * @param id The id of the parent
+     * @param expand
+     */
+    public getChildPages(id: string, expand: string[]) {
+
+        return this.makeRequest({
+            action: HttpAction.GET,
+            url: this.getRequestUrl(`${id}/descendant/page`),
+            params:  {
+                expand: expand.join(',')
+            }
+        })
+            .then((response: AxiosResponse<AtlassianError | AtlassianCollection<Content>>) => {
+                if (response.status != 200) {
+                    throw response.data as AtlassianError;
+                } else {
+                    return response.data as AtlassianCollection<Content>;
+                }
+            })
+              .catch((err: AxiosError) => {
+                  throw this.buildError(err);
+              });
+
+
     }
 
     /**
