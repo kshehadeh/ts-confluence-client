@@ -236,6 +236,15 @@ export type Content = {
     childTypes?: ChildTypes,
     descendants?: ContentChildren,
     container?: object,
+    metadata?: {
+        properties?: any,
+        currentuser?: any,
+        simple?: any,
+        frontend?: any,
+        labels?: any,
+        likes?: any,
+        _expandable?: object,
+    }
     body?: {
         view?: ContentView,
         export_view?: ContentView,
