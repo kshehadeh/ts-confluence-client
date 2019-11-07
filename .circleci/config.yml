@@ -18,14 +18,10 @@ jobs:
           key: dependency-cache-{{ checksum "package-lock.json" }}
           paths:
             - node_modules
-  test:
-    docker:
-      - image: circleci/node:lts
-    steps:
-      - checkout
       - run:
           name: Test
           command: npm test
+
   deploy:
     docker:
       - image: circleci/node:lts
@@ -42,22 +38,19 @@ workflows:
   build_and_test:
     jobs:
       - build
-      - test:
-          requires:
-            - build
-  publish:
-    jobs:
-      - build
-      - test:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
-      - deploy:
-          requires:
-            - test
-          filters:
-            branches:
-              only: master
+#  publish:
+#    jobs:
+#      - build
+#      - test:
+#          requires:
+#            - build
+#          filters:
+#            branches:
+#              only: master
+#      - deploy:
+#          requires:
+#            - test
+#          filters:
+#            branches:
+#              only: master
 
