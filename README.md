@@ -44,5 +44,14 @@ Then run tests using:
  
     npm run test
     
+## Publishing a new version
 
+Update the version number:
+
+    npm version patch # or major,minor,etc.
+     
+And publish with:
+    
+    npm publish
+    
     

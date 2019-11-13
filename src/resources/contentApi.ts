@@ -356,6 +356,19 @@ export class ContentApi extends Resource {
         return this.updateAttachment(contentId, attach);
     }
 
+
+    /**
+     * Returns detailed information about a content item.
+     * @param contentId The ID of the content to find children for
+     * @param contentId The id of the content to load
+     * @param expansion Which data to expand within the results.
+     */
+    public getContentById(contentId: string, expansion?: string[]) {
+        return this.getOne<Content>(`${contentId}`,{
+            'expand': expansion ? expansion.join(',') : null
+        });
+    }
+
     /**
      * Returns detailed information about one type of child
      * @param contentId The ID of the content to find children for

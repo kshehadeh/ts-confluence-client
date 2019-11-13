@@ -116,7 +116,7 @@ export type ContentHistory = {
     latest: boolean
     createdBy: AtlassianUser
     createdDate: string,
-    lastUpdated: ContentVersion
+    lastUpdated: ContentVersion,
     previousVersion: ContentVersion
     contributors: any
     nextVersion: ContentVersion,

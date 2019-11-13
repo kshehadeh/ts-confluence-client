@@ -105,7 +105,7 @@ describe('Confluence: ContentApi', () => {
             console.warn("Specific page to load was not found in previous steps");
             expect(true);
         }
-        await confluence.content.getOne<Content>(cfg.demoPage.id)
+        await confluence.content.getContentById(cfg.demoPage.id)
             .then((page: Content) => {
                 expect(page).toEqual(expect.objectContaining({'id': expect.any(String)}));
                 if (!cfg.demoPage) {
