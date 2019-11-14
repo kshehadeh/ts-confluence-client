@@ -18,6 +18,7 @@ import {
 } from "../src/resources/types";
 
 import {getTestConfluence} from "./lib/init";
+import { ContentApi } from '../src/resources/contentApi';
 
 describe('Confluence: ContentApi', () => {
 
@@ -58,6 +59,20 @@ describe('Confluence: ContentApi', () => {
             if (coll.results.length > 0) {
                 cfg.demoSpace = coll.results.pop();
             }
+        }
+    });
+
+    afterAll(async()=>{
+        if (cfg.demoChildPage.id) {
+            await confluence.content.remove({
+                id: cfg.demoChildPage.id
+            });
+        }
+
+        if (cfg.demoPage.id) {
+            await confluence.content.remove({
+                id: cfg.demoPage.id
+            });
         }
     });
 
@@ -105,12 +120,15 @@ describe('Confluence: ContentApi', () => {
             console.warn("Specific page to load was not found in previous steps");
             expect(true);
         }
-        await confluence.content.getContentById(cfg.demoPage.id)
+        await confluence.content.getContentById(cfg.demoPage.id,["body"])
             .then((page: Content) => {
                 expect(page).toEqual(expect.objectContaining({'id': expect.any(String)}));
                 if (!cfg.demoPage) {
                     cfg.demoPage = page;
                 }
+
+                const text = ContentApi.CONTENT_BODY(cfg.demoPage, ContentFormat.storage);
+                expect(text !== null);
             })
             .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
@@ -390,6 +408,10 @@ describe('Confluence: ContentApi', () => {
         await confluence.content.remove({id: cfg.demoPage.id})
             .then((deleted: boolean) => {
                 expect(deleted).toEqual(true);
+
+                // move this to permanent delete once we can get that working
+                // more reliably.
+                cfg.demoPage = null;
             })
             .catch((err: AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);

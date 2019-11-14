@@ -78,6 +78,37 @@ export class ContentApi extends Resource {
     }
 
     /**
+     * Use this to quickly extract the preferred body content from a page
+     * object.
+     * @param contentPage The page object pulled from the API
+     * @param preferredStorageMechanism The preferred storage mechanism can be
+     *              one of the ContentFormats available.
+     * @return Returns the body as a string if found or null if not found.
+     */
+    static CONTENT_BODY(contentPage: Content, preferredStorageMechanism: ContentFormat): string|null {
+        if (contentPage.body) {
+            if (contentPage.body.hasOwnProperty(preferredStorageMechanism)) {
+                // the value preferred is available so return that one.
+                return contentPage.body[preferredStorageMechanism].value;
+            }
+            else {
+                // these views are listed in the preferred order.
+                const views = [
+                    ContentFormat.storage,
+                    ContentFormat.view,
+                    ContentFormat.styled_view,
+                    ContentFormat.export_view];
+
+                for (let i = 0; i < views.length; i++) {
+                    if (contentPage.body.hasOwnProperty(views[i]) && contentPage.body[views[i]].value) {
+                        return contentPage.body[views[i]].value;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    /**
      * Convenience function that wraps base class create to correctly
      * pull in the right properties to help make sure the create method is
      * called correctly
@@ -88,14 +119,15 @@ export class ContentApi extends Resource {
             title: props.title,
             type: props.type ? props.type : ContentType.page,
             status: ContentStatus.current,
-            space: {key: props.space},
-            ancestors: props.parentId ? [{id: props.parentId}] : null,
-            body: {
-                view: {
-                    value: props.body,
-                    representation: "view"
-                }
-            }
+            space: { key: props.space },
+            ancestors: props.parentId ? [{ id: props.parentId }] : null,
+            body: {}
+        };
+
+        const format = props.format || "storage";
+        params.body[format] = {
+            value: props.body,
+            representation: format
         };
 
         return this.create<Content, Content>({

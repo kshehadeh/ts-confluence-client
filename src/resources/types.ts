@@ -4,7 +4,7 @@ export type AtlassianCollection<T> = {
     limit: number,
     size: number,
     totalSize: number,
-    _links: object
+    _links: any
 }
 
 export interface Error {
@@ -64,7 +64,7 @@ export enum ContentFormat {
 }
 
 /**
- * ContentApi properties are  custom data that you can associated with  pages. The  object
+ * ContentApi properties are  custom data that you can associated with  pages. The  any
  * below is the Confluence API's definition of the content prop's values.
  */
 export type ContentProperty = {
@@ -161,12 +161,12 @@ export enum ContentLabelPrefixes {
 }
 
 export type LookAndFeel = {
-    headings: object
-    links: object
-    menus: object
-    header: object
-    content: object
-    bordersAndDividers: object
+    headings: any
+    links: any
+    menus: any
+    header: any
+    content: any
+    bordersAndDividers: any
 }
 
 export type LookAndFeelSettings = {
@@ -184,15 +184,15 @@ export type SystemInfo = {
 export type ChildTypes = {
     attachment?: {
         value: boolean,
-        _links: object
+        _links: any
     },
     comment?: {
         value: boolean,
-        _links: object
+        _links: any
     },
     page?: {
         value: boolean,
-        _links: object
+        _links: any
     },
     _expandable: {
         all: string,
@@ -206,8 +206,8 @@ export type ContentView = {
     value?: string,
     representation?: string,
     embeddedContent?: any[],
-    webresource?: object,
-    _expandable?: object
+    webresource?: any,
+    _expandable?: any
 }
 
 export type ContentRestriction = {
@@ -215,11 +215,11 @@ export type ContentRestriction = {
     restrictions: {
         user?: AtlassianCollection<AtlassianUser>,
         group?: AtlassianCollection<AtlassianGroup>,
-        _expandable?: object
+        _expandable?: any
     },
     content?: Content,
-    _expandable?: object,
-    _links?: object
+    _expandable?: any,
+    _links?: any
 }
 
 export type Content = {
@@ -235,7 +235,7 @@ export type Content = {
     children?: ContentChildren,
     childTypes?: ChildTypes,
     descendants?: ContentChildren,
-    container?: object,
+    container?: any,
     metadata?: {
         properties?: any,
         currentuser?: any,
@@ -243,7 +243,7 @@ export type Content = {
         frontend?: any,
         labels?: any,
         likes?: any,
-        _expandable?: object,
+        _expandable?: any,
     }
     body?: {
         view?: ContentView,
@@ -252,12 +252,12 @@ export type Content = {
         storage?: ContentView,
         editor2?: ContentView,
         anonymous_export_view?: ContentView,
-        _expandable?: object
+        _expandable?: any
     },
     restrictions?: {
         read?: ContentRestriction,
         update?: ContentRestriction,
-        _links?: object
+        _links?: any
     },
     _expandable?: {
         childTypes?: string,
@@ -273,7 +273,7 @@ export type Content = {
         descendants?: string,
         space?: string
     },
-    _links?: object
+    _links?: any
 }
 
 export type AtlassianUser = {
