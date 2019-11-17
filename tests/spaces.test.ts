@@ -13,8 +13,8 @@ describe ('Confluence: Spaces', () => {
     const confluence = getTestConfluence();
 
     it('will retrieve all spaces', async () => {
-        await confluence.space.getAll({})
-            .then((spaces: []) => {
+        await confluence.space.getAllSpaces()
+            .then((spaces: Space[]) => {
                 expect(spaces.length > 0);
                 // @ts-ignore
                 cfg.firstSpaceKey = spaces[0].key;
@@ -26,7 +26,7 @@ describe ('Confluence: Spaces', () => {
     }, 30000);
 
     it('will get one space', async () => {
-        await confluence.space.getOne(cfg.firstSpaceKey)
+        await confluence.space.getSpaceByKey(cfg.firstSpaceKey)
             .then((space: object) => {
                 expect(space).toEqual(expect.objectContaining({
                     "key": expect.any(String)
