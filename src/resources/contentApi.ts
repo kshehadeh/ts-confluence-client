@@ -18,6 +18,7 @@ import {
     ContentVersion,
     StringBoolean,
 } from './types';
+import { getNestedVal } from '../lib';
 
 interface IContentRequest {
     type: string,
@@ -176,7 +177,8 @@ export class ContentApi extends Resource {
             throw new Error("The content given could not be found");
         }
 
-        if (!contentOb.metadata.properties._expandable.hasOwnProperty(propKey)) {
+        const existingPropVal = getNestedVal(contentOb, "metadata.properties." + propKey);
+        if (existingPropVal === undefined) {
             return await this.createContentProperty(contentOb.id, propKey, propValue);
         }
         else {

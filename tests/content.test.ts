@@ -313,10 +313,24 @@ describe('Confluence: ContentApi', () => {
             });
     }, 30000);
 
-    it('will upsert a content property', async () => {
+    it('will upsert a content property with the value NOT already set', async () => {
 
         await confluence.content.upsertContentProperty(cfg.demoPage.id,
             "testProp2", {"test2": "hello"}
+            )
+            .then((prop: ContentProperty) => {
+                expect(prop.key).toBe("testProp2")
+            })
+            .catch((err: AtlassianError) => {
+                throw new Error(`Error occurred: ${err.message}`);
+            });
+    }, 30000);
+
+    it('will upsert a content property with the value already set', async () => {
+
+        await sleep(4000);
+        await confluence.content.upsertContentProperty(cfg.demoPage.id,
+            "testProp2", {"test3": "hello"}
             )
             .then((prop: ContentProperty) => {
                 expect(prop.key).toBe("testProp2")
