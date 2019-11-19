@@ -148,12 +148,49 @@ export class ContentApi extends Resource {
     }
 
     /**
+     * To save some time for the client, this call will either create or update the property
+     * depending on whether the property has already been added at least once to the content object (calling
+     * create on a content object that already has the property will fail)
+     * @param content This can be the ID of the content or the object itself.  If ID is given then it will retrieve
+     *                  the content object first to determine if the object has had the property set before.
+     * @param propKey
+     * @param propValue
+     * @param minorEdit
+     */
+    public async upsertContentProperty(content: string|Content,
+                                       propKey: string,
+                                       propValue: Record<string, any>,
+                                       minorEdit: boolean=true) {
+
+
+        let contentOb: Content = null;
+
+        if (typeof content === 'string') {
+            contentOb = await this.getContentById(content, [`metadata.properties.${propKey}`]);
+        }
+        else {
+            contentOb = content;
+        }
+
+        if (!contentOb) {
+            throw new Error("The content given could not be found");
+        }
+
+        if (!contentOb.metadata.properties._expandable.hasOwnProperty(propKey)) {
+            return await this.createContentProperty(contentOb.id, propKey, propValue);
+        }
+        else {
+            return await this.updateContentProperty(contentOb.id, propKey, propValue, minorEdit);
+        }
+    }
+
+    /**
      * Create a new custom content property
      * @param id
      * @param propKey The name of the property
      * @param propValue The value of the property.  This must be a javascript object.
      */
-    public async createContentProperty(id: string, propKey: string, propValue: object) {
+    public async createContentProperty(id: string, propKey: string, propValue: Record<string, any>) {
         return this.create<ContentProperty, ContentProperty>({
             id: `${id}/property`,
             data: {
@@ -172,7 +209,11 @@ export class ContentApi extends Resource {
      * @param propValue The value of the property
      * @param minorEdit (optional) If true, this change will  not show as a separate item in  the page's history audit
      */
-    public async updateContentProperty(id: string, propKey: string, propValue: object, minorEdit: boolean = true) {
+    public async updateContentProperty(id: string,
+                                       propKey: string,
+                                       propValue: Record<string, any>,
+                                       minorEdit: boolean = true) {
+
         return this.getContentProperty(id, propKey)
             .then((prop: ContentProperty) => {
                 return prop.version.number;
@@ -509,7 +550,7 @@ export class ContentApi extends Resource {
             });
     }
 
-    public getContentVersion(id: string, version: number, expand: string[]) {
+    public getContentVersion(id: string, version: number, expand?: string[]) {
         return this.getOne(`${id}/version/${version}`, {
                 expand: expand ? expand.join(',') : null
             }

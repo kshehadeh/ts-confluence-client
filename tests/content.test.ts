@@ -79,7 +79,7 @@ describe('Confluence: ContentApi', () => {
 
     it('will retrieve all pages in space', async () => {
 
-        // @ts-ignore
+        
         await confluence.content.getPagesInSpace(cfg.demoSpace.key)
             .then((pages: object[]) => {
                 expect(pages.length >= 0);
@@ -236,7 +236,7 @@ describe('Confluence: ContentApi', () => {
     });
 
     it('will retrieve page children', async () => {
-        // @ts-ignore
+        
         await confluence.content.getContentChildren(cfg.demoPage.id,
             [ContentType.attachment,ContentType.page])
             .then((results: ContentChildren) => {
@@ -249,7 +249,7 @@ describe('Confluence: ContentApi', () => {
     }, 30000);
 
     it('will retrieve page attachments', async () => {
-        // @ts-ignore
+        
         await confluence.content.getAttachments(cfg.demoPage.id,
             {}
             )
@@ -262,7 +262,7 @@ describe('Confluence: ContentApi', () => {
     }, 30000);
 
     it('will retrieve child pages', async () => {
-        // @ts-ignore
+        
         await confluence.content.getChildPages(cfg.demoPage.id,
             ['metadata.properties', 'history']
             )
@@ -275,20 +275,19 @@ describe('Confluence: ContentApi', () => {
     }, 30000);
 
     it('will create a content property', async () => {
-        // @ts-ignore
+        
         await confluence.content.createContentProperty(cfg.demoPage.id,
             "testProp", {"test1": "hello"}
             )
             .then((prop: ContentProperty) => {
                 expect(prop.key).toBe("testProp")
             })
-            .catch((err: AtlassianError) => {
+            .catch((err     : AtlassianError) => {
                 throw new Error(`Error occurred: ${err.message}`);
             });
     }, 30000);
 
     it('will get a content property', async () => {
-        // @ts-ignore
         await confluence.content.getContentProperty(cfg.demoPage.id,
             "testProp"
         )
@@ -302,7 +301,7 @@ describe('Confluence: ContentApi', () => {
 
 
     it('will update a content property', async () => {
-        // @ts-ignore
+        
         await confluence.content.updateContentProperty(cfg.demoPage.id,
             "testProp", {"test1": "goodbye"}
             )
@@ -314,8 +313,21 @@ describe('Confluence: ContentApi', () => {
             });
     }, 30000);
 
+    it('will upsert a content property', async () => {
+
+        await confluence.content.upsertContentProperty(cfg.demoPage.id,
+            "testProp2", {"test2": "hello"}
+            )
+            .then((prop: ContentProperty) => {
+                expect(prop.key).toBe("testProp2")
+            })
+            .catch((err: AtlassianError) => {
+                throw new Error(`Error occurred: ${err.message}`);
+            });
+    }, 30000);
+
     it('will get content history', async () => {
-        // @ts-ignore
+        
         await confluence.content.getContentHistory(cfg.demoPage.id,
             [ContentHistoryExpansions.contributors, ContentHistoryExpansions.history]
             )
@@ -340,7 +352,7 @@ describe('Confluence: ContentApi', () => {
     }, 3000);
 
     it('will get labels', async () => {
-        // @ts-ignore
+        
         await confluence.content.getContentLabels(cfg.demoPage.id,
             ContentLabelPrefixes.global
             )
@@ -353,7 +365,7 @@ describe('Confluence: ContentApi', () => {
     }, 30000);
 
     it ('will get all versions of a page', async () => {
-        // @ts-ignore
+        
         await confluence.content.getContentVersions(cfg.demoPage.id,
         )
             .then((versions: ContentVersion[]) => {
@@ -367,7 +379,7 @@ describe('Confluence: ContentApi', () => {
 
 
     it ('will get one version of a page', async () => {
-        // @ts-ignore
+        
         await confluence.content.getContentVersion(
             cfg.demoPage.id,
             cfg.demoVersion.number
@@ -381,7 +393,7 @@ describe('Confluence: ContentApi', () => {
     }, 30000);
 
     it.skip ('restore a version of a page', async () => {
-        // @ts-ignore
+        
         await confluence.content.restoreContentVersion(
             cfg.demoPage.id,
             cfg.demoVersion.number,
