@@ -170,15 +170,25 @@ export class ContentApi extends Resource {
             contentOb = await this.getContentById(content, [`metadata.properties.${propKey}`]);
         }
         else {
-            contentOb = content;
+            const metaDataExpanded = getNestedVal(content, "metadata") !== undefined;
+            if (!metaDataExpanded) {
+                contentOb = await this.getContentById(content.id, [`metadata.properties.${propKey}`]);
+            } else {
+                contentOb = content;
+            }
         }
 
         if (!contentOb) {
             throw new Error("The content given could not be found");
         }
 
-        const existingPropVal = getNestedVal(contentOb, "metadata.properties." + propKey);
-        if (existingPropVal === undefined) {
+        let propExists = getNestedVal(contentOb, "metadata.properties." + propKey) !== undefined
+        if (!propExists) {
+            // now just check if it's there but not expanded.  We would check this only  but when it's
+            //  expanded it doesn't  show  up in the "_expandable" list  so we have to check both.
+            propExists = getNestedVal(contentOb, "metadata.properties._expandable" + propKey) !== undefined
+        }
+        if (!propExists) {
             return await this.createContentProperty(contentOb.id, propKey, propValue);
         }
         else {

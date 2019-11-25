@@ -329,7 +329,7 @@ describe('Confluence: ContentApi', () => {
     it('will upsert a content property with the value already set', async () => {
 
         await sleep(4000);
-        await confluence.content.upsertContentProperty(cfg.demoPage.id,
+        await confluence.content.upsertContentProperty(cfg.demoPage,
             "testProp2", {"test3": "hello"}
             )
             .then((prop: ContentProperty) => {
@@ -346,7 +346,6 @@ describe('Confluence: ContentApi', () => {
             [ContentHistoryExpansions.contributors, ContentHistoryExpansions.history]
             )
             .then((hist: ContentHistory) => {
-                console.log(hist);
                 expect(hist.latest).toBe(true);
             })
             .catch((err: AtlassianError) => {
@@ -357,7 +356,6 @@ describe('Confluence: ContentApi', () => {
     it('create a label', async () => {
         await confluence.content.addContentLabel(cfg.demoPage.id, "label")
             .then((labels: ContentLabel[]) => {
-                console.log(labels);
                 expect(labels.length).toBeGreaterThan(0);
             })
             .catch((err: AtlassianError) => {

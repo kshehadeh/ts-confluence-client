@@ -47,8 +47,6 @@ describe('Confluence: Users', () => {
                 }
             }
         }
-
-        console.log(testData);
     });
 
     it('will retrieve the current user', async () => {
