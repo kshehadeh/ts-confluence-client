@@ -97,19 +97,19 @@ export type ContentChildren = {
 }
 
 export type ContentVersion = {
-    by: AtlassianUser,
-    when: string,
-    friendlyWhen: string,
-    message: string,
+    by?: AtlassianUser,
+    when?: string,
+    friendlyWhen?: string,
+    message?: string,
     number: number,
-    minorEdit: boolean,
-    content: any,
-    collaborators: {
+    minorEdit?: boolean,
+    content?: any,
+    collaborators?: {
         users: AtlassianUser[],
         userKeys: string[]
     }
-    _expandable: any
-    _links: any
+    _expandable?: any
+    _links?: any
 }
 
 export type ContentHistory = {

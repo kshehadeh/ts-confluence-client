@@ -278,7 +278,7 @@ export class ContentApi extends Resource {
      * @param id The ID of the page to update.
      * @param props
      */
-    public async updateContent(id: string, props: UpdatePageProperties) {
+    public async updateContent(id: string, props: UpdatePageProperties): Promise<Content> {
         const existingPage = await this.getOne<Content>(id);
         if (!existingPage) {
             throw "Unable to find page with id " + id;
@@ -297,12 +297,12 @@ export class ContentApi extends Resource {
             props.type = existingPage.type;
         }
 
-        let params = {
+        let params:Content = {
             title: props.title,
             version: {number: props.version},
             type: props.type ? props.type : ContentType.page,
             status: ContentStatus.current,
-            ancestors: props.parentId ? {id: props.parentId} : null,
+            ancestors: props.parentId ? [{ id: props.parentId }] : null,
             body: {},
         };
 
@@ -310,7 +310,7 @@ export class ContentApi extends Resource {
             value: props.body,
             representation: "view"
         };
-        return this.update({id, data: params});
+        return this.update<Content>({id, data: params});
     }
 
     /**
