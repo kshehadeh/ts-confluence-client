@@ -1,6 +1,6 @@
 {
   "name": "ts-confluence-client",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Modern confluence client written in Typescript.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
