@@ -45,11 +45,11 @@ export type CreatePageProperties = {
 }
 
 export type UpdatePageProperties = {
-    title: string,
-    version: number,
-    type: ContentType,
     body: string,
     format: ContentFormat,
+    type?: ContentType,
+    title?: string,
+    version?: number,
     parentId?: string
 }
 
@@ -279,15 +279,24 @@ export class ContentApi extends Resource {
      * @param props
      */
     public async updateContent(id: string, props: UpdatePageProperties) {
+        const existingPage = await this.getOne<Content>(id);
+        if (!existingPage) {
+            throw "Unable to find page with id " + id;
+        }
+
         if (!props.version) {
             // get the version and automatically increment for them.
-            const existingPage = await this.getOne<Content>(id);
-            if (!existingPage) {
-                throw "Unable to find page with id " + id;
-            } else {
-                props.version = existingPage.version.number + 1;
-            }
+            props.version = existingPage.version.number + 1;
         }
+
+        if (!props.title) {
+            props.title = existingPage.title;
+        }
+
+        if (!props.type) {
+            props.type = existingPage.type;
+        }
+
         let params = {
             title: props.title,
             version: {number: props.version},

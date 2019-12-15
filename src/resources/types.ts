@@ -224,7 +224,7 @@ export type ContentRestriction = {
 
 export type Content = {
     id?: string,
-    type?: string,
+    type?: ContentType,
     status?: string,
     title?: string,
     space?: Space,
