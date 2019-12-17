@@ -15,7 +15,7 @@ import {
     ContentProperty,
     ContentStatus,
     ContentType,
-    ContentVersion,
+    ContentVersion, ContentView,
     StringBoolean,
 } from './types';
 import { getNestedVal } from '../lib';
@@ -46,7 +46,7 @@ export type CreatePageProperties = {
 
 export type UpdatePageProperties = {
     body: string,
-    format: ContentFormat,
+    format?: ContentFormat,
     type?: ContentType,
     title?: string,
     version?: number,
@@ -72,10 +72,39 @@ export type GetAttachmentProperties = {
 
 export class ContentApi extends Resource {
 
-    defaultExpansions: string[] = ["space", "history", "version"];
+    defaultExpansions: string[] = ['space', 'history', 'version'];
 
     protected getRoot() {
-        return "/rest/api/content";
+        return '/rest/api/content';
+    }
+
+    static CONTENT_VIEW(contentPage: Content, preferredStorageMechanism: ContentFormat): { format: ContentFormat, view: ContentView } {
+        if (contentPage.body) {
+            if (contentPage.body.hasOwnProperty(preferredStorageMechanism)) {
+                // the value preferred is available so return that one.
+                return {
+                    format: preferredStorageMechanism,
+                    view: contentPage.body[preferredStorageMechanism],
+                };
+            } else {
+                // these views are listed in the preferred order.
+                const views = [
+                    ContentFormat.storage,
+                    ContentFormat.view,
+                    ContentFormat.styled_view,
+                    ContentFormat.export_view];
+
+                for (let i = 0; i < views.length; i++) {
+                    if (contentPage.body.hasOwnProperty(views[i]) && contentPage.body[views[i]].value) {
+                        return {
+                            format: views[i],
+                            view: contentPage.body[views[i]],
+                        };
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -86,29 +115,15 @@ export class ContentApi extends Resource {
      *              one of the ContentFormats available.
      * @return Returns the body as a string if found or null if not found.
      */
-    static CONTENT_BODY(contentPage: Content, preferredStorageMechanism: ContentFormat): string|null {
-        if (contentPage.body) {
-            if (contentPage.body.hasOwnProperty(preferredStorageMechanism)) {
-                // the value preferred is available so return that one.
-                return contentPage.body[preferredStorageMechanism].value;
-            }
-            else {
-                // these views are listed in the preferred order.
-                const views = [
-                    ContentFormat.storage,
-                    ContentFormat.view,
-                    ContentFormat.styled_view,
-                    ContentFormat.export_view];
-
-                for (let i = 0; i < views.length; i++) {
-                    if (contentPage.body.hasOwnProperty(views[i]) && contentPage.body[views[i]].value) {
-                        return contentPage.body[views[i]].value;
-                    }
-                }
-            }
+    static CONTENT_BODY(contentPage: Content, preferredStorageMechanism: ContentFormat): string | null {
+        const viewInfo = this.CONTENT_VIEW(contentPage, preferredStorageMechanism);
+        if (viewInfo) {
+            return viewInfo.view.value;
+        } else {
+            return null;
         }
-        return null;
     }
+
     /**
      * Convenience function that wraps base class create to correctly
      * pull in the right properties to help make sure the create method is
@@ -122,17 +137,17 @@ export class ContentApi extends Resource {
             status: ContentStatus.current,
             space: { key: props.space },
             ancestors: props.parentId ? [{ id: props.parentId }] : null,
-            body: {}
+            body: {},
         };
 
-        const format = props.format || "storage";
+        const format = props.format || 'storage';
         params.body[format] = {
             value: props.body,
-            representation: format
+            representation: format,
         };
 
         return this.create<Content, Content>({
-            data: params
+            data: params,
         });
     }
 
@@ -158,19 +173,18 @@ export class ContentApi extends Resource {
      * @param propValue
      * @param minorEdit
      */
-    public async upsertContentProperty(content: string|Content,
+    public async upsertContentProperty(content: string | Content,
                                        propKey: string,
                                        propValue: Record<string, any>,
-                                       minorEdit: boolean=true) {
+                                       minorEdit: boolean = true) {
 
 
         let contentOb: Content = null;
 
         if (typeof content === 'string') {
             contentOb = await this.getContentById(content, [`metadata.properties.${propKey}`]);
-        }
-        else {
-            const metaDataExpanded = getNestedVal(content, "metadata") !== undefined;
+        } else {
+            const metaDataExpanded = getNestedVal(content, 'metadata') !== undefined;
             if (!metaDataExpanded) {
                 contentOb = await this.getContentById(content.id, [`metadata.properties.${propKey}`]);
             } else {
@@ -179,19 +193,18 @@ export class ContentApi extends Resource {
         }
 
         if (!contentOb) {
-            throw new Error("The content given could not be found");
+            throw new Error('The content given could not be found');
         }
 
-        let propExists = getNestedVal(contentOb, "metadata.properties." + propKey) !== undefined
+        let propExists = getNestedVal(contentOb, 'metadata.properties.' + propKey) !== undefined;
         if (!propExists) {
             // now just check if it's there but not expanded.  We would check this only  but when it's
             //  expanded it doesn't  show  up in the "_expandable" list  so we have to check both.
-            propExists = getNestedVal(contentOb, "metadata.properties._expandable" + propKey) !== undefined
+            propExists = getNestedVal(contentOb, 'metadata.properties._expandable' + propKey) !== undefined;
         }
         if (!propExists) {
             return await this.createContentProperty(contentOb.id, propKey, propValue);
-        }
-        else {
+        } else {
             return await this.updateContentProperty(contentOb.id, propKey, propValue, minorEdit);
         }
     }
@@ -207,8 +220,8 @@ export class ContentApi extends Resource {
             id: `${id}/property`,
             data: {
                 key: propKey,
-                value: propValue
-            }
+                value: propValue,
+            },
         }).then((prop: ContentProperty) => {
             return prop;
         });
@@ -240,9 +253,9 @@ export class ContentApi extends Resource {
                         value: propValue,
                         version: {
                             number: versionNum + 1,
-                            minorEdit: minorEdit
-                        }
-                    }
+                            minorEdit: minorEdit,
+                        },
+                    },
                 });
             })
             .then((updatedProp: ContentProperty) => {
@@ -259,15 +272,15 @@ export class ContentApi extends Resource {
         const ctx = context ? {
             space: context.spaceKey ? context.spaceKey : null,
             contentId: context.contentId ? context.contentId : null,
-            contentStatuses: context.contentStatuses ? context.contentStatuses.join(',') : null
+            contentStatuses: context.contentStatuses ? context.contentStatuses.join(',') : null,
         } : null;
 
         return this.getAll({
             id: 'search', params: {
                 cql: cql,
                 context: ctx,
-                expand: null
-            }
+                expand: null,
+            },
         });
     }
 
@@ -279,9 +292,11 @@ export class ContentApi extends Resource {
      * @param props
      */
     public async updateContent(id: string, props: UpdatePageProperties): Promise<Content> {
-        const existingPage = await this.getOne<Content>(id);
+        const existingPage = await this.getContentById(id, [
+          "body","body.storage","body.view", "version","ancestors"
+        ]);
         if (!existingPage) {
-            throw "Unable to find page with id " + id;
+            throw 'Unable to find page with id ' + id;
         }
 
         if (!props.version) {
@@ -297,20 +312,32 @@ export class ContentApi extends Resource {
             props.type = existingPage.type;
         }
 
-        let params:Content = {
+        if (!props.format || props.format != existingPage.body) {
+            props.format = ContentFormat.storage;
+        }
+
+        const viewInfo = ContentApi.CONTENT_VIEW(existingPage, ContentFormat.storage);
+        if (!viewInfo) {
+            // this should not happen.  it probably means that we did not expand "body"
+            //  when making the request for the existing page.
+            throw new Error("Body information could not be found for existing page");
+        }
+        viewInfo.view.value = props.body;
+
+        let params: Content = {
             title: props.title,
-            version: {number: props.version},
+            version: { number: props.version },
             type: props.type ? props.type : ContentType.page,
             status: ContentStatus.current,
             ancestors: props.parentId ? [{ id: props.parentId }] : null,
-            body: {},
+            body: {}
         };
 
-        params.body[props.type] = {
+        params.body[viewInfo.format] = {
             value: props.body,
-            representation: "view"
+            representation: viewInfo.format,
         };
-        return this.update<Content>({id, data: params});
+        return this.update<Content>({ id, data: params });
     }
 
     /**
@@ -320,22 +347,22 @@ export class ContentApi extends Resource {
      * @param id
      */
     public async permanentlyDelete(id: string) {
-        const page = await this.getOne<Content>(id, {status: ContentStatus.trashed});
+        const page = await this.getOne<Content>(id, { status: ContentStatus.trashed });
         if (page) {
             // we can only permanently delete if the item is already in the trash.
             if (page.status === ContentStatus.trashed) {
                 return this.remove({
                     id: id,
                     data: {
-                        status: ContentStatus.trashed
-                    }
+                        status: ContentStatus.trashed,
+                    },
                 });
             } else {
-                return this.remove({id}).then((deleted: boolean) => {
+                return this.remove({ id }).then((deleted: boolean) => {
                     if (deleted) {
                         return this.permanentlyDelete(id);
                     } else {
-                        throw "Unable to move this content item to the trash before permanently deleting.";
+                        throw 'Unable to move this content item to the trash before permanently deleting.';
                     }
                 });
             }
@@ -356,9 +383,9 @@ export class ContentApi extends Resource {
         return this.makeRequest({
             action: HttpAction.GET,
             url: this.getRequestUrl(`${id}/descendant/page`),
-            params:  {
-                expand: expand.join(',')
-            }
+            params: {
+                expand: expand.join(','),
+            },
         })
             .then((response: AxiosResponse<AtlassianError | AtlassianCollection<Content>>) => {
                 if (response.status != 200) {
@@ -367,9 +394,9 @@ export class ContentApi extends Resource {
                     return response.data as AtlassianCollection<Content>;
                 }
             })
-              .catch((err: AxiosError) => {
-                  throw this.buildError(err);
-              });
+            .catch((err: AxiosError) => {
+                throw this.buildError(err);
+            });
 
 
     }
@@ -383,7 +410,7 @@ export class ContentApi extends Resource {
      */
     public getContentChildren(id: string, childTypes: ContentType[]) {
         if (childTypes.indexOf(ContentType.blogpost) > -1) {
-            throw ("Blog posts cannot be children of any other content");
+            throw ('Blog posts cannot be children of any other content');
         }
 
         return this.makeRequest({
@@ -391,7 +418,7 @@ export class ContentApi extends Resource {
             url: this.getRequestUrl(`${id}/child`),
             params: {
                 expand: childTypes.join(','),
-            }
+            },
         })
             .then((response: AxiosResponse<AtlassianError | ContentChildren>) => {
                 if (response.status != 200) {
@@ -415,7 +442,7 @@ export class ContentApi extends Resource {
         return this.getAll({
             id: `${id}/child/attachment`,
             expand: [],
-            params: props
+            params: props,
         });
     }
 
@@ -432,8 +459,8 @@ export class ContentApi extends Resource {
                 // tslint:disable-next-line:non-literal-fs-path
                 file: fs.createReadStream(attach.file),
                 comment: attach.comment,
-                minorEdit: attach.minorEdit
-            }
+                minorEdit: attach.minorEdit,
+            },
         }).then((attachmentResult: any) => {
             // the attachment result returns a result similar to a get multiple resources
             //  request.  So we are going to pull out the results here
@@ -458,8 +485,8 @@ export class ContentApi extends Resource {
      * @param expansion Which data to expand within the results.
      */
     public getContentById(contentId: string, expansion?: string[]) {
-        return this.getOne<Content>(`${contentId}`,{
-            'expand': expansion ? expansion.join(',') : null
+        return this.getOne<Content>(`${contentId}`, {
+            'expand': expansion ? expansion.join(',') : null,
         });
     }
 
@@ -473,8 +500,8 @@ export class ContentApi extends Resource {
         return this.getAll({
             id: `${contentId}/child/${type}`,
             params: {
-                'expand': expansion.join(',')
-            }
+                'expand': expansion.join(','),
+            },
         });
     }
 
@@ -485,7 +512,7 @@ export class ContentApi extends Resource {
     public getPagesInSpace(spaceKey: string) {
         return this.getContentCollection({
             type: 'page',
-            spaceKey: spaceKey
+            spaceKey: spaceKey,
         });
     }
 
@@ -495,7 +522,7 @@ export class ContentApi extends Resource {
      */
     public getContentCollection(request: IPageRequest | IBlogRequest) {
         return this.getAll({
-            params: request
+            params: request,
         });
     }
 
@@ -506,7 +533,7 @@ export class ContentApi extends Resource {
      */
     public getContentHistory(id: string, expand: ContentHistoryExpansions[]) {
         return this.getOne(`${id}/history`, {
-            expand: expand.join(',')
+            expand: expand.join(','),
         })
             .then((history: ContentHistory) => {
                 return history;
@@ -523,8 +550,8 @@ export class ContentApi extends Resource {
             id: `${id}/label`,
             data: {
                 prefix: 'global',
-                name: labelName
-            }
+                name: labelName,
+            },
         }).then((res: AtlassianCollection<ContentLabel>) => {
             return res.results;
         });
@@ -539,7 +566,7 @@ export class ContentApi extends Resource {
         return this.remove(
             {
                 id: `${id}/label`,
-                data: label
+                data: label,
             })
             .then(() => {
                 return true;
@@ -555,8 +582,8 @@ export class ContentApi extends Resource {
         return this.getAll({
             id: `${id}/label`,
             params: {
-                prefix: prefixFilter
-            }
+                prefix: prefixFilter,
+            },
         }).then((labels: ContentLabel[]) => {
             return labels;
         });
@@ -573,8 +600,8 @@ export class ContentApi extends Resource {
 
     public getContentVersion(id: string, version: number, expand?: string[]) {
         return this.getOne(`${id}/version/${version}`, {
-                expand: expand ? expand.join(',') : null
-            }
+                expand: expand ? expand.join(',') : null,
+            },
         )
             .then((version: ContentVersion) => {
                 return version;
@@ -595,9 +622,9 @@ export class ContentApi extends Resource {
                 operationKey: 'RESTORE',
                 params: {
                     versionNumber: version,
-                    message: message
-                }
-            }
+                    message: message,
+                },
+            },
         })
             .then((version: ContentVersion) => {
                 return version;

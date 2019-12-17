@@ -11,7 +11,6 @@ import {
     ContentType,
     ContentVersion,
     StringBoolean,
-    Space,
     AtlassianCollection,
     AtlassianError,
     isAtlassianError, Content
@@ -27,6 +26,7 @@ describe('Confluence: ContentApi', () => {
     type ContentConfig = {
         initialTitle: string,
         updatedTitle: string,
+        updatedTitle2: string,
         childPageTitle: string,
         demoSpace?: any,
         demoPage?: any,
@@ -37,6 +37,7 @@ describe('Confluence: ContentApi', () => {
     const cfg:ContentConfig = {
         initialTitle: 'Test Page - ' + testRunId,
         updatedTitle: `Test Page - ${testRunId} (Updated)`,
+        updatedTitle2: `Test Page - ${testRunId} (Updated Again)`,
         childPageTitle: `Test Child Page - ${testRunId}`
     };
 
@@ -48,16 +49,14 @@ describe('Confluence: ContentApi', () => {
 
     beforeAll(async ()=>{
         // get the first space and use it for testing.
-        const spaces = await confluence.space.getPage<Space>({
-            start: 0,
-            limit: 1
+        const spaces = await confluence.space.getAllSpaces({
+            keys: ["~kshehadeh"],
         });
         if (isAtlassianError(spaces)) {
             cfg.demoSpace = null;
         } else {
-            const coll = (spaces as AtlassianCollection<Space>);
-            if (coll.results.length > 0) {
-                cfg.demoSpace = coll.results.pop();
+            if (spaces.length > 0) {
+                cfg.demoSpace = spaces.pop();
             }
         }
     });
@@ -99,7 +98,7 @@ describe('Confluence: ContentApi', () => {
         }
 
         await confluence.content.createContent({
-            title: "Test Page",
+            title: cfg.initialTitle,
             space: cfg.demoSpace.key,
             body: "This is my test content",
             format: ContentFormat.storage,
@@ -158,6 +157,29 @@ describe('Confluence: ContentApi', () => {
                 .catch((err: AtlassianError) => {
                     throw new Error(`Error occurred: ${err.message}`);
                 });
+        }
+    }, 30000);
+
+
+    it('will update a page with excluded input params', async () => {
+
+        await sleep(3000);
+
+        if (!cfg.demoPage)  {
+            console.warn("Specific page to load was not found in previous steps");
+            expect(true);
+        }
+        else {
+            await confluence.content.updateContent(cfg.demoPage.id, {
+                title: cfg.updatedTitle2,
+                body: "This is my test content - updated again"
+            })
+              .then((page: object) => {
+                  expect(page).toEqual(expect.objectContaining({'title': cfg.updatedTitle2}));
+              })
+              .catch((err: AtlassianError) => {
+                  throw new Error(`Error occurred: ${err.message}`);
+              });
         }
     }, 30000);
 
