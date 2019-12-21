@@ -276,6 +276,31 @@ export type Content = {
     _links?: any
 }
 
+export type Breadcrumb = {
+    label: string,
+    url: string,
+    separator: string
+}
+
+export type ContainerSummary = {
+    title: string,
+    displayUrl: string
+}
+
+export type SearchResult = {
+    content?: Content,
+    title?: string,
+    excerpt?: string,
+    url?: string,
+    resultParentContainer: ContainerSummary,
+    resultGlobalContainer: ContainerSummary,
+    breadcrumbs: Breadcrumb[],
+    entityType: string,
+    iconCssClass: string,
+    lastModified: string,
+    friendlyLastModified: string
+}
+
 export type AtlassianUser = {
     type: string, //known, unknown, anonymous, user
     username: string,
