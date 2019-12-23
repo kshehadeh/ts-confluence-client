@@ -15,7 +15,7 @@ import {
     ContentProperty,
     ContentStatus,
     ContentType,
-    ContentVersion, ContentView, SearchResult,
+    ContentVersion, ContentView, CqlContextProperties,
     StringBoolean,
 } from './types';
 import { getNestedVal } from '../lib';
@@ -51,12 +51,6 @@ export type UpdatePageProperties = {
     title?: string,
     version?: number,
     parentId?: string
-}
-
-export type CqlContextProperties = {
-    spaceKey?: string,
-    contentId?: string,
-    contentStatuses?: ContentStatus[]
 }
 
 export type AttachmentProperties = {
@@ -268,14 +262,14 @@ export class ContentApi extends Resource {
      * @param cql The search query
      * @param context
      */
-    public async searchContent(cql: string, context?: CqlContextProperties): Promise<SearchResult[]> {
+    public async searchContent(cql: string, context?: CqlContextProperties): Promise<Content[]> {
         const ctx = context ? {
             space: context.spaceKey ? context.spaceKey : null,
             contentId: context.contentId ? context.contentId : null,
             contentStatuses: context.contentStatuses ? context.contentStatuses.join(',') : null,
         } : null;
 
-        return this.getAll<SearchResult>({
+        return this.getAll<Content>({
             id: 'search', params: {
                 cql: cql,
                 context: ctx,

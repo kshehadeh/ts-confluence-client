@@ -183,7 +183,7 @@ describe('Confluence: ContentApi', () => {
         }
     }, 30000);
 
-    it('will search using cql', async () => {
+    it('will search using content api', async () => {
         if (!cfg.demoPage)  {
             console.warn("Specific page to load was not found in previous steps");
             expect(true);
@@ -196,6 +196,22 @@ describe('Confluence: ContentApi', () => {
                 .catch((err: AtlassianError) => {
                     throw new Error(`Error occurred: ${err.message}`);
                 });
+        }
+    }, 30000);
+
+    it('will search using search api', async () => {
+        if (!cfg.demoPage)  {
+            console.warn("Specific page to load was not found in previous steps");
+            expect(true);
+        }
+        else {
+            await confluence.search.search('id=' + cfg.demoPage.id)
+              .then((pages: object[]) => {
+                  expect(pages.length).toEqual(1);
+              })
+              .catch((err: AtlassianError) => {
+                  throw new Error(`Error occurred: ${err.message}`);
+              });
         }
     }, 30000);
 

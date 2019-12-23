@@ -287,6 +287,13 @@ export type ContainerSummary = {
     displayUrl: string
 }
 
+
+export type CqlContextProperties = {
+    spaceKey?: string,
+    contentId?: string,
+    contentStatuses?: ContentStatus[]
+}
+
 export type SearchResult = {
     content?: Content,
     title?: string,

@@ -4,6 +4,7 @@ import {SettingsApi, ThemeApi} from "./resources/settingsApi";
 import {SpaceApi} from "./resources/spaceApi";
 import {config} from "dotenv";
 import {UserApi} from "./resources/userApi";
+import { SearchApi } from './resources/searchApi';
 
 config();
 
@@ -24,6 +25,7 @@ export class Confluence {
     public content: ContentApi;
     public groups: GroupApi;
     public users: UserApi;
+    public search: SearchApi;
 
     public constructor(connection: ConfConnectionInfo) {
         this._connection = connection;
@@ -33,6 +35,7 @@ export class Confluence {
         this.content = new ContentApi(this._connection);
         this.groups = new GroupApi(this._connection);
         this.users = new UserApi(this._connection);
+        this.search = new SearchApi(this._connection);
     }
 
     get connection(): ConfConnectionInfo {
