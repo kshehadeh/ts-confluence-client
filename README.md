@@ -4,7 +4,7 @@ A client for the Confluence Cloud API written in TypeScript.
 
 # Installation
 
-    npm install
+    npm install ts-confluence-client
     
 # Usage
 
