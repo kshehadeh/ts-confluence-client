@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from 'axios';
 import { ConfConnectionInfo } from '..';
 import { AtlassianCollection, AtlassianError, isAtlassianError, ResponseOrError } from './types';
 
@@ -57,9 +57,11 @@ export type HttpRequestParameters<T> = {
 export abstract class Resource {
     pageSize: number = 50;
     connection: ConfConnectionInfo;
+    axiosInstance: AxiosInstance;
 
-    constructor(connection: ConfConnectionInfo, pageSize: number = 50) {
+    constructor(connection: ConfConnectionInfo, axiosInstance?: AxiosInstance, pageSize: number = 50) {
         this.connection = connection;
+        this.axiosInstance = axiosInstance || axios;
         this.pageSize = pageSize;
     }
 
@@ -103,11 +105,17 @@ export abstract class Resource {
             method: params.action,
             url: params.url,
             params: params.params,
-            auth: {
+            auth: undefined
+        };
+        
+        if (this.connection.accessToken) {
+            cfg["Authorization"] = `Bearer ${this.connection.accessToken}`;
+        } else if (this.connection.username && this.connection.apiToken) {
+            cfg.auth = {
                 username: this.connection.username,
                 password: this.connection.apiToken
-            }
-        };
+            };
+        }
 
         // Axios does not support multipart form data out of the box
         //  so we need to build the body using the FormData object
@@ -131,8 +139,7 @@ export abstract class Resource {
         else {
             cfg.data = params.data
         }
-
-        return axios(cfg as AxiosRequestConfig);
+        return this.axiosInstance(cfg as AxiosRequestConfig);
     }
 
     /**
