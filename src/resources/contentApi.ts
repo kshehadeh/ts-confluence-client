@@ -86,7 +86,8 @@ export class ContentApi extends Resource {
                     ContentFormat.storage,
                     ContentFormat.view,
                     ContentFormat.styled_view,
-                    ContentFormat.export_view];
+                    ContentFormat.export_view,
+                    ContentFormat.dynamic];
 
                 for (let i = 0; i < views.length; i++) {
                     if (contentPage.body.hasOwnProperty(views[i]) && contentPage.body[views[i]].value) {
@@ -287,7 +288,7 @@ export class ContentApi extends Resource {
      */
     public async updateContent(id: string, props: UpdatePageProperties): Promise<Content> {
         const existingPage = await this.getContentById(id, [
-          "body","body.storage","body.view", "version","ancestors"
+          "body","body.storage","body.view","body.dynamic", "version","ancestors"
         ]);
         if (!existingPage) {
             throw 'Unable to find page with id ' + id;
