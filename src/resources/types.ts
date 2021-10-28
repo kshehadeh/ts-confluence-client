@@ -60,7 +60,8 @@ export enum ContentFormat {
     storage = 'storage',
     styled_view = 'styled_view',
     view = 'view',
-    export_view = 'export_view'
+    export_view = 'export_view',
+    dynamic = 'dynamic'
 }
 
 /**
@@ -251,6 +252,7 @@ export type Content = {
         styled_view?: ContentView,
         storage?: ContentView,
         editor2?: ContentView,
+        dynamic?: ContentView,
         anonymous_export_view?: ContentView,
         _expandable?: any
     },
