@@ -1,0 +1,12 @@
+ignore:
+  sha: []
+minor-version-bump-message: '^(feat|feature)(\([a-z ]+\))?:'
+patch-version-bump-message: '^(fix|hotfix)(\([a-z ]+\))?:'  
+merge-message-formats:
+  chaseappio: '^Merge pull request #(?<PullRequestNumber>\d+) (from|in) (?:chaseappio\/(?<SourceBranch>[^\s]*))(?: into (?<TargetBranch>[^\s]*))*'
+branches:
+  release:
+    mode: ContinuousDeployment
+    tag: rc
+  hotfix:
+    regex: ^(hot|bug)?fix(es)?[/-]

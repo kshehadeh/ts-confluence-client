@@ -1,0 +1,52 @@
+# Node.js with Ang
+# Build a Node.js project that uses Angular.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+  - master
+  - dev
+
+pool: vmssagentpool
+
+steps:
+
+  - task: gitversion/setup@0
+    inputs:
+      versionSpec: '5.x'
+
+  - task: gitversion/execute@0
+    inputs:
+      useConfigFile: true
+      configFilePath: 'GitVersion.yml'
+
+  - task: npmAuthenticate@0
+    inputs:
+      workingFile: '.npmrc'
+
+  - script: |
+      set -e
+      chmod u+x ./build/build.sh
+      cd "$(Build.SourcesDirectory)"
+      ./build/build.sh "$(GitVersion.SemVer)" "$(Build.SourceBranchName)"
+
+    displayName: 'build script'
+
+  - task: Npm@1
+    inputs:
+      command: 'publish'
+      workingDir: 'dist'
+      publishRegistry: 'useFeed'
+      publishFeed: '370b2d0a-b669-4328-a091-9c000b5b86e0'
+
+  - task: GitHubRelease@0
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    inputs:
+      gitHubConnection: 'github-chaseappio'
+      repositoryName: '$(Build.Repository.Name)'
+      action: 'create'
+      target: '$(Build.SourceVersion)'
+      tagSource: 'manual'
+      tag: 'v$(GitVersion.SemVer)'
+      title: 'TS Confluence Client v$(GitVersion.SemVer)'
+      isPreRelease: false
